@@ -1,0 +1,8 @@
+{
+  "name": "Training Companion",
+  "description": "Daily training companion for resistance and cardio scheduling and reflection.",
+  "prompt": "Training companion app imported from andrsn13/training-companion",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

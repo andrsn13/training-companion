@@ -5,10 +5,12 @@ export interface Settings {
   id: 'training-settings';
   lastResistanceDate: string; lastCardioDate: string;
   baselineResistanceDate: string; baselineCardioDate: string; // setup dates; used when no completed session remains
+  startCycleStage?: number; // 0 to 7
   createdAt: string; updatedAt: string;
 }
 export interface DailyRecord {
   date: string; activityType: Activity; status: Status; notes: string;
+  stageIndex?: number; cycleNumber?: number; readinessTags?: string[];
   createdAt: string; updatedAt: string; completedAt: string | null;
 }
 
