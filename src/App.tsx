@@ -44,79 +44,82 @@ const BedIcon = ({ s = 24 }: { s?: number }) => (
   </svg>
 );
 
-const HeroBedIcon = ({ s = 64 }: { s?: number }) => (
+const HeroBedIcon = ({ s = 90 }: { s?: number }) => {
+  const h = Math.round(s * 0.636);
+  return (
+    <svg
+      width={s}
+      height={h}
+      viewBox="0 0 88 56"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="4.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* Left headboard post */}
+      <line x1="8" y1="10" x2="8" y2="48" strokeWidth="5.2" />
+      {/* Right footboard post */}
+      <line x1="80" y1="24" x2="80" y2="48" strokeWidth="5.2" />
+      {/* Lower mattress foundation */}
+      <line x1="8" y1="38" x2="80" y2="38" strokeWidth="5.2" />
+      {/* Soft rounded pillow loop on left */}
+      <path
+        d="M21 28c-4.5 0-7.5-3-7.5-6.5s3-6.5 7.5-6.5h6v13h-6z"
+        strokeWidth="4.2"
+        fill="currentColor"
+        fillOpacity="0.18"
+      />
+      {/* Draped blanket on right */}
+      <path
+        d="M34 23h38a5 5 0 0 1 5 5v10H34z"
+        strokeWidth="4.2"
+        fill="currentColor"
+        fillOpacity="0.14"
+      />
+    </svg>
+  );
+};
+
+const HeroDumbbellIcon = ({ s = 84 }: { s?: number }) => (
   <svg
     width={s}
-    height={s}
-    viewBox="0 0 64 64"
+    height={Math.round(s * 0.6)}
+    viewBox="0 0 80 48"
     fill="none"
     stroke="currentColor"
-    strokeWidth="3.2"
+    strokeWidth="4.2"
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
   >
-    {/* Left headboard post */}
-    <line x1="10" y1="17" x2="10" y2="47" strokeWidth="3.6" />
-    {/* Right footboard post */}
-    <line x1="54" y1="27" x2="54" y2="47" strokeWidth="3.6" />
-    {/* Mattress foundation */}
-    <line x1="10" y1="38" x2="54" y2="38" strokeWidth="3.6" />
-    {/* Soft rounded pillow */}
-    <path
-      d="M17 28h10a3 3 0 0 1 3 3v7h-13z"
-      strokeWidth="3"
-      fill="currentColor"
-      fillOpacity="0.16"
-    />
-    {/* Draped blanket */}
-    <path
-      d="M30 33h20a4 4 0 0 1 4 4v1H30z"
-      strokeWidth="3"
-      fill="currentColor"
-      fillOpacity="0.12"
-    />
+    <rect x="14" y="10" width="7" height="28" rx="3.5" strokeWidth="4.2" fill="currentColor" fillOpacity="0.2" />
+    <rect x="59" y="10" width="7" height="28" rx="3.5" strokeWidth="4.2" fill="currentColor" fillOpacity="0.2" />
+    <rect x="7" y="16" width="6" height="16" rx="3" strokeWidth="3.6" />
+    <rect x="67" y="16" width="6" height="16" rx="3" strokeWidth="3.6" />
+    <line x1="21" y1="24" x2="59" y2="24" strokeWidth="5.2" />
   </svg>
 );
 
-const HeroDumbbellIcon = ({ s = 64 }: { s?: number }) => (
+const HeroRunIcon = ({ s = 80 }: { s?: number }) => (
   <svg
     width={s}
     height={s}
     viewBox="0 0 64 64"
     fill="none"
     stroke="currentColor"
-    strokeWidth="3.2"
+    strokeWidth="4"
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
   >
-    <rect x="13" y="18" width="6" height="28" rx="3" strokeWidth="3.2" fill="currentColor" fillOpacity="0.2" />
-    <rect x="45" y="18" width="6" height="28" rx="3" strokeWidth="3.2" fill="currentColor" fillOpacity="0.2" />
-    <rect x="7" y="24" width="5" height="16" rx="2.5" strokeWidth="2.8" />
-    <rect x="52" y="24" width="5" height="16" rx="2.5" strokeWidth="2.8" />
-    <line x1="19" y1="32" x2="45" y2="32" strokeWidth="4" />
-  </svg>
-);
-
-const HeroRunIcon = ({ s = 64 }: { s?: number }) => (
-  <svg
-    width={s}
-    height={s}
-    viewBox="0 0 64 64"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="3.2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <circle cx="41" cy="13" r="5" fill="currentColor" stroke="none" />
-    <path d="M36 23l-5 13" strokeWidth="3.5" />
-    <path d="M35 24l8 5 4-5" strokeWidth="3.5" />
-    <path d="M35 24L27 27l-6 7" strokeWidth="3.5" />
-    <path d="M31 36l8 6-3 11" strokeWidth="3.5" />
-    <path d="M31 36l-5 8-10 3" strokeWidth="3.5" />
+    <circle cx="41" cy="12" r="5.5" fill="currentColor" stroke="none" />
+    <path d="M36 23l-5 13" strokeWidth="4.2" />
+    <path d="M35 24l8 5 5-5" strokeWidth="4.2" />
+    <path d="M35 24L26 27l-6 7" strokeWidth="4.2" />
+    <path d="M31 36l8 6-3 12" strokeWidth="4.2" />
+    <path d="M31 36l-5 8-10 3" strokeWidth="4.2" />
   </svg>
 );
 
@@ -168,26 +171,26 @@ const DotsIcon = ({ s = 24 }: { s?: number }) => (
   </svg>
 );
 
-const CalendarBadgeIcon = ({ s = 20 }: { s?: number }) => (
+const CalendarBadgeIcon = ({ s = 26 }: { s?: number }) => (
   <svg
     width={s}
     height={s}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="1.8"
+    strokeWidth="1.9"
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
   >
-    <rect x="3.5" y="4.5" width="17" height="16" rx="4" />
-    <path d="M3.5 9.5h17" />
-    <path d="M8 2.5v3.5M16 2.5v3.5" />
-    <circle cx="8" cy="13.5" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="13.5" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="16" cy="13.5" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="8" cy="17" r="0.9" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none" />
+    <rect x="3" y="4.5" width="18" height="16" rx="4.5" />
+    <path d="M3 9.5h18" strokeWidth="1.6" />
+    <path d="M7.5 2.5v3.5M16.5 2.5v3.5" strokeWidth="2.2" />
+    <circle cx="8" cy="13.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="13.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="16" cy="13.5" r="1" fill="currentColor" stroke="none" />
+    <circle cx="8" cy="17" r="1" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none" />
   </svg>
 );
 
@@ -473,7 +476,7 @@ export default function App() {
               setShowCalendarSheet(true);
             }}
           >
-            <CalendarBadgeIcon s={20} />
+            <CalendarBadgeIcon s={26} />
           </button>
         </header>
 
@@ -501,11 +504,11 @@ export default function App() {
               onClick={handleOrbClick}
             >
               {activity === 'rest' ? (
-                <HeroBedIcon s={64} />
+                <HeroBedIcon s={90} />
               ) : activity === 'resistance' ? (
-                <HeroDumbbellIcon s={64} />
+                <HeroDumbbellIcon s={84} />
               ) : (
-                <HeroRunIcon s={64} />
+                <HeroRunIcon s={80} />
               )}
             </button>
           </div>
