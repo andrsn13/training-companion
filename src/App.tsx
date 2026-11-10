@@ -227,86 +227,12 @@ function getStepNumber(stageIndex: number): number {
 function CelestialBackground() {
   return (
     <div className="screen-1-art" aria-hidden="true">
-      <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          {/* Deep cosmos gradient */}
-          <radialGradient id="sky-cosmos" cx="75%" cy="28%" r="80%">
-            <stop offset="0%" stopColor="#452C82" stopOpacity="0.55" />
-            <stop offset="35%" stopColor="#221544" stopOpacity="0.4" />
-            <stop offset="70%" stopColor="#110B24" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#080710" stopOpacity="1" />
-          </radialGradient>
-
-          {/* Luminous celestial crescent gradient */}
-          <linearGradient id="crescent-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#D8CBFF" stopOpacity="0.9" />
-            <stop offset="30%" stopColor="#9E8CF8" stopOpacity="0.65" />
-            <stop offset="70%" stopColor="#6E55D0" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#35207A" stopOpacity="0" />
-          </linearGradient>
-
-          {/* Soft optical bloom filter */}
-          <filter id="bloom-filter" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="3" result="blur1" />
-            <feGaussianBlur stdDeviation="8" result="blur2" />
-            <feMerge>
-              <feMergeNode in="blur2" />
-              <feMergeNode in="blur1" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-
-          {/* Misty atmospheric fog gradient between ridges */}
-          <linearGradient id="mist-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#2E1F5C" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#0C0A18" stopOpacity="0.9" />
-          </linearGradient>
-        </defs>
-
-        {/* Deep sky fill */}
-        <rect width="100%" height="100%" fill="url(#sky-cosmos)" />
-
-        {/* Glowing Celestial Eclipse Arc sweeping from upper right */}
-        <g className="breathe-glow">
-          <path
-            d="M 270,120 A 210,210 0 0 1 390,440"
-            fill="none"
-            stroke="url(#crescent-grad)"
-            strokeWidth="3.5"
-            filter="url(#bloom-filter)"
-          />
-          <path
-            d="M 270,120 A 210,210 0 0 1 390,440"
-            fill="none"
-            stroke="#E9E0FF"
-            strokeWidth="1.2"
-            strokeOpacity="0.95"
-          />
-        </g>
-
-        {/* Distant Mountain Ridge */}
-        <path
-          d="M 0,535 Q 90,495 180,530 T 320,505 T 390,535 L 390,844 L 0,844 Z"
-          fill="#1C1438"
-          fillOpacity="0.7"
-        />
-
-        {/* Atmospheric Mist Layer */}
-        <rect x="0" y="520" width="390" height="90" fill="url(#mist-grad)" />
-
-        {/* Mid Mountain Ridge */}
-        <path
-          d="M 0,555 Q 110,520 220,550 T 390,535 L 390,844 L 0,844 Z"
-          fill="#130E26"
-          fillOpacity="0.9"
-        />
-
-        {/* Foreground Deep Obsidian Ridge */}
-        <path
-          d="M 0,580 Q 80,550 170,575 T 330,555 T 390,580 L 390,844 L 0,844 Z"
-          fill="#090812"
-        />
-      </svg>
+      <img
+        src="/hero-bg.png"
+        alt=""
+        className="screen-1-bg-img"
+        loading="eager"
+      />
     </div>
   );
 }
@@ -529,10 +455,6 @@ export default function App() {
               <ChevronRightIcon s={20} />
             </div>
           </button>
-
-          <div className="scroll-hint-bar" aria-hidden="true">
-            <span>Scroll for cycle details ↓</span>
-          </div>
         </div>
       </section>
 

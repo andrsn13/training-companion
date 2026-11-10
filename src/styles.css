@@ -101,7 +101,7 @@ button {
   scroll-snap-stop: always;
 }
 
-/* Layered Atmospheric Canvas (Deep Dusk, Celestial Eclipse Arc & Misty Mountains) */
+/* Background Image Layer for Screen 1 */
 .screen-1-art {
   position: absolute;
   inset: 0;
@@ -110,9 +110,11 @@ button {
   overflow: hidden;
 }
 
-.screen-1-art svg {
+.screen-1-bg-img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center top;
   display: block;
 }
 
