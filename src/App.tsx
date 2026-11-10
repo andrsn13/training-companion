@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useTraining } from './useTraining';
 import { addDays, daysBetween, parseISODate, toISODate, type Activity } from './scheduler';
 import { lineFor, type LineKey } from './lines';
@@ -23,7 +23,7 @@ const PATHS: Record<string, ReactNode> = {
   checkc: <><circle cx="12" cy="12" r="9" /><path d="M8 12.5l3 3 5-6" /></>,
   alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.2v.1" /></>,
   ring: <circle cx="12" cy="12" r="8.5" />,
-  dash: <path d="M8 12h8" />,
+  dash: <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />,
   notes: <path d="M5 7h14M5 12h14M5 17h9" />,
   back: <path d="M15 5l-7 7 7 7" />,
 };
@@ -54,16 +54,19 @@ function Notes({ date, value, onSave }: { date: string; value: string; onSave: (
 
 type Opt = { label: string; iso: string };
 function Pick({ label, value, onChange, options, max }: { label: string; value: string; onChange: (v: string) => void; options: Opt[]; max: string }) {
-  const custom = !options.some((o) => o.iso === value);
+  const id = useId(), custom = !options.some((o) => o.iso === value);
+  const row = (text: string, on: boolean, click: () => void) => (
+    <li key={text}><button type="button" role="radio" aria-checked={on} className="item" onClick={click}><span className="grow">{text}</span>{on && <span className="tick"><Icon n="check" s={20} w={2.4} /></span>}</button></li>
+  );
   return (
-    <fieldset className="pick">
-      <legend className="section">{label}</legend>
-      <div className="chips">
-        {options.map((o) => <button type="button" key={o.label} className="chip" aria-pressed={o.iso === value} onClick={() => onChange(o.iso)}>{o.label}</button>)}
-        <button type="button" className="chip" aria-pressed={custom} onClick={() => onChange(addDays(max, -4))}>Earlier</button>
-      </div>
-      {custom && <input className="datein" type="date" required max={max} value={value} aria-label={`${label} date`} onChange={(e) => e.target.value && onChange(e.target.value)} />}
-    </fieldset>
+    <section className="stack tight" role="radiogroup" aria-labelledby={id}>
+      <h2 id={id} className="section">{label}</h2>
+      <ul className="group list radio">
+        {options.map((o) => row(o.label, o.iso === value, () => onChange(o.iso)))}
+        {row('Earlier…', custom, () => onChange(addDays(max, -4)))}
+        {custom && <li className="field"><span>Date</span><input type="date" required max={max} value={value} aria-label={`${label} date`} onChange={(e) => e.target.value && onChange(e.target.value)} /></li>}
+      </ul>
+    </section>
   );
 }
 
@@ -73,16 +76,16 @@ function Setup({ initial, onDone, onCancel, busy }: { initial?: { r: string; c: 
   const ro: Opt[] = [{ label: 'Not yet', iso: addDays(t, -3) }, { label: 'Today', iso: t }, { label: 'Yesterday', iso: addDays(t, -1) }, { label: '2 days ago', iso: addDays(t, -2) }];
   const co: Opt[] = [{ label: 'Today or not yet', iso: t }, { label: 'Yesterday', iso: addDays(t, -1) }, { label: '3 days ago', iso: addDays(t, -3) }, { label: '5 days ago', iso: addDays(t, -5) }];
   return (
-    <main className="app">
+    <main className="app setup">
       {onCancel && <button className="link back" onClick={onCancel}><Icon n="back" s={20} /> History</button>}
       <header className="head">
         <h1 className="large">{initial ? 'Starting dates' : 'When did you last train?'}</h1>
-        <p className="sub">Pick your most recent completed session of each type. Starting fresh? Keep the defaults.</p>
+        <p className="sub">Choose your most recent completed session of each type. Starting fresh? Keep the defaults.</p>
       </header>
-      <form className="stack" onSubmit={(e) => { e.preventDefault(); onDone(r, c); }}>
+      <form className="stack form" onSubmit={(e) => { e.preventDefault(); onDone(r, c); }}>
         <Pick label="Resistance" value={r} onChange={setR} options={ro} max={t} />
         <Pick label="Cardio" value={c} onChange={setC} options={co} max={t} />
-        <button className="btn" type="submit" disabled={busy}>{initial ? 'Save' : 'Show today'}</button>
+        <div className="dock"><button className="btn" type="submit" disabled={busy}>{initial ? 'Save' : 'Show today'}</button></div>
       </form>
     </main>
   );
@@ -192,9 +195,9 @@ function History({ t, sel, setSel, onEdit }: { t: T; sel: string | null; setSel:
               </li>
             ); })}
           </ul>
+          {t.records.length === 1 && <p className="foot">Your history builds from today.</p>}
         </section>
       ))}
-      {t.records.length === 1 && <p className="foot">Your history builds from today.</p>}
       <ul className="group"><li><button className="item" onClick={onEdit}><span className="grow"><span className="linktext">Edit starting dates</span></span></button></li></ul>
     </main>
   );
