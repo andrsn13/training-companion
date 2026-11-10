@@ -93,8 +93,7 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: max(1.25rem, env(safe-area-inset-top) + 0.5rem) 1.25rem calc(var(--tab-height) + env(safe-area-inset-bottom) + 1rem);
+  padding: calc(env(safe-area-inset-top) + 10px) 1.25rem calc(var(--tab-height) + env(safe-area-inset-bottom) + 12px);
   overflow: hidden;
   box-sizing: border-box;
   scroll-snap-align: start;
@@ -136,6 +135,7 @@ button {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  flex-shrink: 0;
 }
 
 .screen-1-date {
@@ -146,11 +146,11 @@ button {
 }
 
 .btn-calendar-badge {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
-  background: rgba(28, 23, 46, 0.7);
-  border: 1px solid rgba(139, 120, 246, 0.35);
+  background: rgba(28, 23, 46, 0.65);
+  border: 1px solid rgba(139, 120, 246, 0.32);
   color: var(--purple-light);
   display: flex;
   align-items: center;
@@ -175,8 +175,8 @@ button {
   align-items: center;
   text-align: center;
   width: 100%;
-  margin-top: 1rem;
-  margin-bottom: auto;
+  margin-top: clamp(20px, 4.2vh, 38px);
+  flex-shrink: 0;
 }
 
 /* Tight typographic coupling */
@@ -185,17 +185,17 @@ button {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: 2.75rem;
+  margin-bottom: clamp(24px, 4vh, 36px);
 }
 
 .hero-main-title {
-  font-size: 2.875rem;
+  font-size: clamp(2.5rem, 7.5vw, 3rem);
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.035em;
   color: var(--text-white);
   margin: 0;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
 }
 
 .hero-main-sub {
@@ -203,14 +203,14 @@ button {
   font-weight: 400;
   color: var(--text-muted);
   letter-spacing: -0.015em;
-  margin: 6px 0 0 0; /* Tight, exact 6px gap! */
+  margin: 8px 0 0 0;
 }
 
 /* Center Glowing Glass Orb / Sphere */
 .center-orb-container {
   position: relative;
-  width: 148px;
-  height: 148px;
+  width: 176px;
+  height: 176px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,42 +219,42 @@ button {
 /* Diffuse Ambient Outer Bloom */
 .orb-ambient-glow {
   position: absolute;
-  inset: -25px;
+  inset: -32px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 120, 246, 0.42) 0%, rgba(124, 110, 230, 0.18) 45%, transparent 70%);
-  filter: blur(18px);
+  background: radial-gradient(circle, rgba(147, 112, 219, 0.45) 0%, rgba(124, 110, 230, 0.2) 48%, transparent 72%);
+  filter: blur(24px);
   pointer-events: none;
   animation: orbBloomBreathe 8s ease-in-out infinite;
 }
 
 @keyframes orbBloomBreathe {
-  0%, 100% { opacity: 0.8; transform: scale(0.97); }
+  0%, 100% { opacity: 0.85; transform: scale(0.97); }
   50% { opacity: 1; transform: scale(1.04); }
 }
 
 /* Glass Orb Body */
 .glass-orb {
-  width: 144px;
-  height: 144px;
+  width: 172px;
+  height: 172px;
   border-radius: 50%;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 35% 30%, rgba(145, 125, 250, 0.32) 0%, rgba(55, 40, 100, 0.52) 50%, rgba(18, 14, 36, 0.82) 100%);
-  border: 1px solid rgba(175, 148, 255, 0.42);
-  box-shadow: 0 0 45px rgba(124, 110, 230, 0.38),
-              inset 0 0 24px rgba(167, 139, 250, 0.25),
-              inset 0 1px 2px rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(32px) saturate(170%);
-  -webkit-backdrop-filter: blur(32px) saturate(170%);
+  background: radial-gradient(circle at 35% 30%, rgba(165, 145, 255, 0.28) 0%, rgba(65, 48, 120, 0.48) 50%, rgba(20, 16, 40, 0.82) 100%);
+  border: 1.5px solid rgba(195, 175, 255, 0.45);
+  box-shadow: 0 0 50px rgba(139, 120, 246, 0.42),
+              inset 0 2px 16px rgba(255, 255, 255, 0.3),
+              inset 0 -8px 24px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
   color: var(--purple-light);
   cursor: pointer;
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
 }
 
 .glass-orb:active {
-  transform: scale(0.93);
+  transform: scale(0.94);
 }
 
 .glass-orb.is-workout-done {
@@ -270,9 +270,8 @@ button {
   position: relative;
   z-index: 2;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin-top: auto;
+  margin-bottom: 8px;
 }
 
 .next-session-card {
@@ -362,8 +361,8 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1.375rem;
-  padding: 1.5rem 1.25rem calc(var(--tab-height) + env(safe-area-inset-bottom) + 2rem);
+  gap: 1.5rem;
+  padding: calc(env(safe-area-inset-top) + 20px) 1.25rem calc(var(--tab-height) + env(safe-area-inset-bottom) + 24px);
   box-sizing: border-box;
   scroll-snap-align: start;
   scroll-snap-stop: always;
@@ -377,16 +376,16 @@ button {
 }
 
 .screen-2-title {
-  font-size: 1.375rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--text-white);
   margin: 0;
 }
 
 .btn-info-circle {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -404,14 +403,14 @@ button {
 .cycle-rail-section {
   position: relative;
   width: 100%;
-  padding: 0.25rem 0 0.5rem;
+  padding: 0.5rem 0 0.75rem;
 }
 
 .rail-connector-line {
   position: absolute;
-  top: 24px;
-  left: 20px;
-  right: 20px;
+  top: 27px;
+  left: 24px;
+  right: 24px;
   height: 2px;
   background: rgba(255, 255, 255, 0.12);
   z-index: 1;
@@ -431,7 +430,7 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  min-width: 44px;
+  min-width: 46px;
 }
 
 .cycle-node-btn {
@@ -458,7 +457,7 @@ button {
   align-items: center;
   justify-content: center;
   background: rgba(28, 24, 44, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text-muted);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -471,8 +470,8 @@ button {
 }
 
 .cycle-node-circle.is-current {
-  box-shadow: 0 0 0 2px var(--purple-light), 0 0 16px rgba(139, 120, 246, 0.6);
-  transform: scale(1.05);
+  box-shadow: 0 0 0 2px var(--purple-light), 0 0 18px rgba(139, 120, 246, 0.65);
+  transform: scale(1.08);
 }
 
 .cycle-node-label {
@@ -484,36 +483,36 @@ button {
 
 .cycle-node-label.is-current {
   color: var(--text-white);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Card 1: Cycle Progress Card */
 .progress-card {
-  background: var(--bg-card);
-  border: 1px solid var(--bg-card-border);
+  background: rgba(28, 24, 46, 0.68);
+  border: 1px solid rgba(139, 120, 246, 0.25);
   border-radius: 1.375rem;
-  padding: 1.25rem 1.25rem 1.375rem;
+  padding: 1.375rem 1.375rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.125rem;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  gap: 1.25rem;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .progress-header-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.875rem;
+  gap: 1rem;
 }
 
 .progress-accent-bar {
-  width: 3px;
-  height: 40px;
+  width: 4px;
+  height: 44px;
   border-radius: 2px;
-  background: linear-gradient(to bottom, #8B78F6, #A78BFA);
+  background: linear-gradient(to bottom, #8B78F6, #C4B5FD);
   flex-shrink: 0;
-  box-shadow: 0 0 8px rgba(139, 120, 246, 0.5);
+  box-shadow: 0 0 10px rgba(139, 120, 246, 0.6);
 }
 
 .progress-info-col {
@@ -530,7 +529,7 @@ button {
 }
 
 .progress-num {
-  font-size: 2rem;
+  font-size: 2.125rem;
   line-height: 1.1;
   font-weight: 700;
   color: var(--text-white);
@@ -550,47 +549,48 @@ button {
   height: 100%;
   border-radius: 3px;
   background: linear-gradient(to right, #7C6EE6, #A78BFA);
-  box-shadow: 0 0 10px rgba(139, 120, 246, 0.5);
+  box-shadow: 0 0 12px rgba(139, 120, 246, 0.6);
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Card 2: Quote Card */
 .quote-card {
-  background: var(--bg-card);
-  border: 1px solid var(--bg-card-border);
+  background: rgba(28, 24, 46, 0.68);
+  border: 1px solid rgba(139, 120, 246, 0.25);
   border-radius: 1.375rem;
-  padding: 1.25rem 1.375rem;
+  padding: 1.375rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  gap: 0.75rem;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .quote-mark {
-  font-size: 2rem;
+  font-size: 2.25rem;
   line-height: 1;
-  color: var(--purple-primary);
+  color: #A78BFA;
   font-family: Georgia, serif;
 }
 
 .quote-body-text {
-  font-family: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
-  font-size: 1.1875rem;
-  line-height: 1.45;
-  color: var(--text-lavender);
+  font-family: ui-serif, "New York", "Iowan Old Style", Georgia, Cambria, serif;
+  font-size: 1.15rem;
+  line-height: 1.55;
+  color: rgba(240, 238, 255, 0.95);
   letter-spacing: -0.01em;
   white-space: pre-line;
   margin: 0;
+  font-style: italic;
 }
 
 .quote-author {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-muted);
-  letter-spacing: -0.01em;
-  margin-top: 0.25rem;
+  letter-spacing: 0.02em;
+  margin-top: 0.35rem;
 }
 
 /* ==========================================================================

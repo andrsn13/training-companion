@@ -37,10 +37,86 @@ const BedIcon = ({ s = 24 }: { s?: number }) => (
     strokeLinejoin="round"
     aria-hidden="true"
   >
-    <path d="M3 7v13" />
-    <path d="M21 12v8" />
-    <path d="M3 15h18" />
-    <path d="M6 11.5h4a2 2 0 0 1 2 2v1.5H6z" />
+    <path d="M2.5 6.5v13" />
+    <path d="M21.5 11v8.5" />
+    <path d="M2.5 15.5h19" />
+    <path d="M6 11h5a2 2 0 0 1 2 2v2.5H6z" />
+  </svg>
+);
+
+const HeroBedIcon = ({ s = 64 }: { s?: number }) => (
+  <svg
+    width={s}
+    height={s}
+    viewBox="0 0 64 64"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {/* Left headboard post */}
+    <line x1="10" y1="17" x2="10" y2="47" strokeWidth="3.6" />
+    {/* Right footboard post */}
+    <line x1="54" y1="27" x2="54" y2="47" strokeWidth="3.6" />
+    {/* Mattress foundation */}
+    <line x1="10" y1="38" x2="54" y2="38" strokeWidth="3.6" />
+    {/* Soft rounded pillow */}
+    <path
+      d="M17 28h10a3 3 0 0 1 3 3v7h-13z"
+      strokeWidth="3"
+      fill="currentColor"
+      fillOpacity="0.16"
+    />
+    {/* Draped blanket */}
+    <path
+      d="M30 33h20a4 4 0 0 1 4 4v1H30z"
+      strokeWidth="3"
+      fill="currentColor"
+      fillOpacity="0.12"
+    />
+  </svg>
+);
+
+const HeroDumbbellIcon = ({ s = 64 }: { s?: number }) => (
+  <svg
+    width={s}
+    height={s}
+    viewBox="0 0 64 64"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="13" y="18" width="6" height="28" rx="3" strokeWidth="3.2" fill="currentColor" fillOpacity="0.2" />
+    <rect x="45" y="18" width="6" height="28" rx="3" strokeWidth="3.2" fill="currentColor" fillOpacity="0.2" />
+    <rect x="7" y="24" width="5" height="16" rx="2.5" strokeWidth="2.8" />
+    <rect x="52" y="24" width="5" height="16" rx="2.5" strokeWidth="2.8" />
+    <line x1="19" y1="32" x2="45" y2="32" strokeWidth="4" />
+  </svg>
+);
+
+const HeroRunIcon = ({ s = 64 }: { s?: number }) => (
+  <svg
+    width={s}
+    height={s}
+    viewBox="0 0 64 64"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="41" cy="13" r="5" fill="currentColor" stroke="none" />
+    <path d="M36 23l-5 13" strokeWidth="3.5" />
+    <path d="M35 24l8 5 4-5" strokeWidth="3.5" />
+    <path d="M35 24L27 27l-6 7" strokeWidth="3.5" />
+    <path d="M31 36l8 6-3 11" strokeWidth="3.5" />
+    <path d="M31 36l-5 8-10 3" strokeWidth="3.5" />
   </svg>
 );
 
@@ -357,11 +433,8 @@ export default function App() {
     activity === 'rest' ? 'rest' : isDoneToday ? (activity === 'resistance' ? 'resistanceDone' : 'cardioDone') : activity;
   const quote = quoteFor(quoteKey, t.today);
 
-  // Exact 2-line quote formatting matching reference design
-  const quoteText =
-    activity === 'rest'
-      ? 'I loafe and invite my soul,\nI lean and loafe at my ease...'
-      : quote.text.split('\n').slice(0, 2).join('\n');
+  // Full unabridged quote for Screen 2
+  const quoteText = quote.text;
 
   // Handle center orb click
   const handleOrbClick = () => {
@@ -428,11 +501,11 @@ export default function App() {
               onClick={handleOrbClick}
             >
               {activity === 'rest' ? (
-                <BedIcon s={54} />
+                <HeroBedIcon s={64} />
               ) : activity === 'resistance' ? (
-                <DumbbellIcon s={54} />
+                <HeroDumbbellIcon s={64} />
               ) : (
-                <RunIcon s={54} />
+                <HeroRunIcon s={64} />
               )}
             </button>
           </div>
