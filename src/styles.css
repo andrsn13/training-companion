@@ -69,6 +69,7 @@ button {
 
 /* Outer Mobile App Canvas */
 /* Outer Mobile App Canvas */
+/* Outer Mobile App Canvas */
 .phone-canvas {
   width: 100%;
   max-width: 440px;
@@ -77,16 +78,18 @@ button {
   min-height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
-  scroll-snap-type: y mandatory;
   position: relative;
   background: var(--bg-deep);
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 /* ==========================================================================
-   SCREEN 1: CLEAR HIERARCHY (Exact 100dvh Viewport)
+   SCREEN 1: CLEAR HIERARCHY (Exact 100dvh Viewport — Full Screen Bleed)
+   The phone's native status bar (Dynamic Island, time, battery) overlays on top.
+   The background art goes edge-to-edge (inset: 0) with zero visual separation.
    ========================================================================== */
 
 .screen-1 {
@@ -97,23 +100,23 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding-top: calc(env(safe-area-inset-top) + 16px);
-  padding-bottom: calc(var(--tab-height) + env(safe-area-inset-bottom) + 14px);
+  padding-top: 0;
+  padding-bottom: calc(var(--tab-height) + env(safe-area-inset-bottom, 0px) + clamp(12px, 2vh, 18px));
   padding-left: 0;
   padding-right: 0;
   overflow: hidden;
   box-sizing: border-box;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  flex-shrink: 0;
 }
 
-/* Background Image Layer for Screen 1 */
+/* Background Image Layer for Screen 1 (Extends Full Screen Behind Status Bar) */
 .screen-1-art {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  background: var(--bg-deep);
 }
 
 .screen-1-bg-img {
@@ -134,7 +137,8 @@ button {
   50% { opacity: 1; transform: scale(1.03); }
 }
 
-/* Screen 1 Header: Date & Calendar Button */
+/* Screen 1 Header: Date & Calendar Button
+   Positioned comfortably below the native phone status bar / Dynamic Island */
 .screen-1-header {
   position: relative;
   z-index: 2;
@@ -142,14 +146,17 @@ button {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0 clamp(16px, 5vw, 28px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + clamp(16px, 3vh, 26px));
+  padding-bottom: clamp(6px, 1.2vh, 12px);
+  padding-left: clamp(20px, 6vw, 28px);
+  padding-right: clamp(20px, 6vw, 28px);
   box-sizing: border-box;
   flex-shrink: 0;
-  margin-bottom: clamp(12px, 2.5vh, 24px);
+  margin: 0;
 }
 
 .screen-1-date {
-  font-size: clamp(1.05rem, 3.8vw, 1.25rem);
+  font-size: clamp(1.0625rem, 3.8vw, 1.25rem);
   font-weight: 500;
   color: #FFFFFF;
   letter-spacing: -0.015em;
@@ -158,11 +165,11 @@ button {
 }
 
 .btn-calendar-badge {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
   flex-shrink: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
   border: none;
   color: #B49BFF;
@@ -179,7 +186,7 @@ button {
   opacity: 0.8;
 }
 
-/* Screen 1 Middle Section: Title Block + Center Orb */
+/* Screen 1 Middle Section: Title Block + Subordinate Center Orb */
 .screen-1-body {
   position: relative;
   z-index: 2;
@@ -192,10 +199,10 @@ button {
   box-sizing: border-box;
   flex-shrink: 0;
   margin: auto 0;
-  padding: clamp(6px, 1.5vh, 16px) 0;
+  padding: clamp(4px, 1vh, 12px) 0;
 }
 
-/* Matching typographic width coupling */
+/* High-Impact Hero Typography Group (Primary Visual Anchor) */
 .hero-text-block {
   display: flex;
   flex-direction: column;
@@ -204,33 +211,33 @@ button {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  margin-bottom: clamp(18px, 3.8vh, 36px);
+  margin-bottom: clamp(16px, 3vh, 28px);
   padding: 0 clamp(16px, 4.5vw, 24px);
 }
 
 .hero-main-title {
-  font-size: clamp(1.85rem, 6.6vw, 2.75rem);
+  font-size: clamp(2.75rem, 8.8vw, 3.5rem);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.025em;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   color: #FFFFFF;
   margin: 0;
   white-space: normal;
   text-wrap: balance;
   overflow-wrap: break-word;
   word-break: normal;
-  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.6);
-  max-width: 100%;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.65);
+  max-width: 95%;
   width: 100%;
   box-sizing: border-box;
 }
 
 .hero-main-sub {
-  font-size: clamp(0.875rem, 3.2vw, 1.0625rem);
+  font-size: clamp(1rem, 3.4vw, 1.15rem);
   font-weight: 400;
-  color: rgba(220, 215, 245, 0.78);
+  color: rgba(220, 215, 245, 0.82);
   letter-spacing: -0.015em;
-  margin: clamp(6px, 1.5vh, 10px) auto 0;
+  margin: clamp(8px, 1.6vh, 14px) auto 0;
   line-height: 1.35;
   white-space: normal;
   text-wrap: balance;
@@ -240,11 +247,11 @@ button {
   box-sizing: border-box;
 }
 
-/* Center Glowing Glass Orb / Sphere */
+/* Center Glowing Glass Orb / Sphere (Harmoniously Subordinate to Title) */
 .center-orb-container {
   position: relative;
-  width: clamp(136px, min(36vw, 22vh), 168px);
-  height: clamp(136px, min(36vw, 22vh), 168px);
+  width: clamp(138px, 34vw, 158px);
+  height: clamp(138px, 34vw, 158px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -254,10 +261,10 @@ button {
 /* Diffuse Ambient Outer Bloom */
 .orb-ambient-glow {
   position: absolute;
-  inset: -20px;
+  inset: -16px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(147, 112, 219, 0.38) 0%, rgba(124, 110, 230, 0.16) 48%, transparent 72%);
-  filter: blur(20px);
+  background: radial-gradient(circle, rgba(147, 112, 219, 0.35) 0%, rgba(124, 110, 230, 0.14) 48%, transparent 72%);
+  filter: blur(18px);
   pointer-events: none;
   animation: orbBloomBreathe 8s ease-in-out infinite;
 }
@@ -402,15 +409,14 @@ button {
 
 .screen-2 {
   width: 100%;
-  min-height: 100dvh;
+  min-height: auto;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: clamp(1rem, 2.8vh, 1.5rem);
-  padding: calc(env(safe-area-inset-top) + 20px) clamp(16px, 4.5vw, 22px) calc(var(--tab-height) + env(safe-area-inset-bottom) + 24px);
+  gap: clamp(1rem, 2.5vh, 1.5rem);
+  padding: clamp(24px, 4vh, 36px) clamp(16px, 4.5vw, 22px) calc(var(--tab-height) + env(safe-area-inset-bottom) + 110px);
   box-sizing: border-box;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  flex-shrink: 0;
 }
 
 .screen-2-header {
@@ -796,6 +802,12 @@ button {
   word-break: break-word;
   max-width: 100%;
   line-height: 1.35;
+}
+
+.screen-2-bottom-clearance {
+  height: clamp(36px, 8vh, 60px);
+  width: 100%;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================

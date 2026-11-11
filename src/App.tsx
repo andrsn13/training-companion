@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -359,6 +360,7 @@ function BottomSheetDrawer({
   );
 }
 
+
 /* ==========================================================================
    MAIN APP COMPONENT
    ========================================================================== */
@@ -482,10 +484,10 @@ export default function App() {
           SCREEN 1: CLEAR HIERARCHY (100dvh — The Only Thing Visible on Open)
           ==================================================================== */}
       <section className="screen-1" aria-label="Today's Training Overview">
-        {/* Layered Celestial Background Artwork */}
+        {/* Layered Celestial Background Artwork (Extends Edge-to-Edge Under Status Bar) */}
         <CelestialBackground />
 
-        {/* Top Header: Date & Calendar Button */}
+        {/* Top Header: Date & Calendar Button (Spaced Below Phone Status Bar) */}
         <header className="screen-1-header">
           <span className="screen-1-date">
             {fmt(t.today, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -719,6 +721,9 @@ export default function App() {
           <blockquote className="quote-body-text">{quoteText}</blockquote>
           <span className="quote-author">— {quote.author}</span>
         </div>
+
+        {/* Generous bottom scroll clearance to prevent tab bar clipping */}
+        <div className="screen-2-bottom-clearance" aria-hidden="true" />
       </section>
 
       {/* ====================================================================
