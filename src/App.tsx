@@ -366,7 +366,16 @@ function BottomSheetDrawer({
         });
         return () => cancelAnimationFrame(r2);
       });
-      return () => cancelAnimationFrame(r1);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        cancelAnimationFrame(r1);
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     } else {
       setIsActive(false);
       timer = setTimeout(() => {
@@ -374,7 +383,7 @@ function BottomSheetDrawer({
       }, 340);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!shouldRender) return null;
 
@@ -422,6 +431,8 @@ export default function App() {
   const touchStartY = useRef<number | null>(null);
   const touchStartTime = useRef<number>(0);
   const isAutoScrolling = useRef<boolean>(false);
+  const isProgrammaticScroll = useRef<boolean>(false);
+  const programmaticScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const todayRec = t.records.find((r) => r.date === t.today);
   const stageIndex = t.plan?.stageIndex ?? 1; // 0..7
@@ -429,12 +440,26 @@ export default function App() {
   const activeStep = inspectedStep ?? currentStep;
   const isDoneToday = todayRec?.status === 'completed';
 
+  const setProgrammaticLock = () => {
+    isProgrammaticScroll.current = true;
+    if (programmaticScrollTimeout.current) {
+      clearTimeout(programmaticScrollTimeout.current);
+    }
+    programmaticScrollTimeout.current = setTimeout(() => {
+      isProgrammaticScroll.current = false;
+    }, 700);
+  };
+
   // Keep bottom tab in sync with scroll position and calculate parallax ratio
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const top = e.currentTarget.scrollTop;
     const vh = window.innerHeight || 800;
     const ratio = Math.min(1, Math.max(0, top / (vh * 0.7)));
     setScrollRatio(ratio);
+
+    // If scrolling programmatically via tab click or CTA, preserve the target tab
+    // to prevent intermediate positional jitter or bouncing of the navigation pill
+    if (isProgrammaticScroll.current) return;
 
     const threshold = vh * 0.45;
     if (top > threshold) {
@@ -447,6 +472,7 @@ export default function App() {
   // Smooth scroll down to Screen 2
   const scrollToScreen2 = () => {
     hapticPulse(10);
+    setProgrammaticLock();
     setTab('history');
     screen2Ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -454,6 +480,7 @@ export default function App() {
   // Smooth scroll up to Screen 1
   const scrollToTop = () => {
     hapticPulse(8);
+    setProgrammaticLock();
     setTab('today');
     canvasRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -652,8 +679,16 @@ export default function App() {
             <div className={`orb-ambient-glow ${isDoneToday ? 'is-done-glow' : ''}`} />
             {shockwaveKey > 0 && (
               <>
-                <div key={`shockwave-1-${shockwaveKey}`} className="orb-shockwave-ring" aria-hidden="true" />
-                <div key={`shockwave-2-${shockwaveKey}`} className="orb-shockwave-ring secondary" aria-hidden="true" />
+                <div
+                  key={`shockwave-1-${shockwaveKey}`}
+                  className={`orb-shockwave-ring ${lastAction === 'complete' ? 'is-complete' : 'is-violet'}`}
+                  aria-hidden="true"
+                />
+                <div
+                  key={`shockwave-2-${shockwaveKey}`}
+                  className={`orb-shockwave-ring secondary ${lastAction === 'complete' ? 'is-complete' : 'is-violet'}`}
+                  aria-hidden="true"
+                />
               </>
             )}
             {shockwaveKey > 0 && isDoneToday && (
