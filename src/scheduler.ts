@@ -264,3 +264,120 @@ export function calculateMetrics(records: DayPlan[]): TrainingMetrics {
     currentStreakDays: streak,
   };
 }
+
+export interface HistoricalSession {
+  date: string;
+  activityType: Activity;
+  status: Status;
+  notes: string;
+  completedAt: string | null;
+}
+
+export interface TrainingCycle {
+  id: string;
+  cycleNumber: number;
+  label: string;
+  isCurrent: boolean;
+  startDate: string;
+  endDate: string;
+  dateRangeFormatted: string;
+  resistanceCount: number;
+  cardioCount: number;
+  restCount: number;
+  totalSessions: number;
+  sessions: HistoricalSession[];
+}
+
+export function formatCycleDateRange(startDate: string, endDate: string): string {
+  const s = parseISODate(startDate);
+  const e = parseISODate(endDate);
+  const sMonth = s.toLocaleDateString('en-US', { month: 'short' });
+  const sDay = s.getDate();
+  const eMonth = e.toLocaleDateString('en-US', { month: 'short' });
+  const eDay = e.getDate();
+  const year = e.getFullYear();
+
+  if (sMonth === eMonth) {
+    return `${sMonth} ${sDay} – ${eDay}, ${year}`;
+  }
+  return `${sMonth} ${sDay} – ${eMonth} ${eDay}, ${year}`;
+}
+
+/**
+ * Partitions completed sessions into rolling 8-day training cycles.
+ * Returns cycles sorted in reverse chronological order (newest first).
+ */
+export function groupCycles(
+  completedRecords: Array<{
+    date: string;
+    activityType: Activity;
+    status: Status;
+    notes?: string;
+    completedAt?: string | null;
+  }>,
+  today: string
+): TrainingCycle[] {
+  const sessions = completedRecords.filter(
+    (r) =>
+      r.status === 'completed' &&
+      (r.activityType === 'resistance' || r.activityType === 'cardio' || r.activityType === 'rest')
+  );
+
+  const bucketMap = new Map<number, HistoricalSession[]>();
+
+  for (const s of sessions) {
+    const daysAgo = dayNum(today) - dayNum(s.date);
+    const cycleAgo = Math.max(0, Math.floor(daysAgo / CYCLE_LENGTH));
+    const list = bucketMap.get(cycleAgo) ?? [];
+    list.push({
+      date: s.date,
+      activityType: s.activityType,
+      status: s.status,
+      notes: s.notes ?? '',
+      completedAt: s.completedAt ?? null,
+    });
+    bucketMap.set(cycleAgo, list);
+  }
+
+  const cycleAgos = Array.from(bucketMap.keys()).sort((a, b) => b - a);
+  if (cycleAgos.length === 0) {
+    return [];
+  }
+
+  const maxCycleAgo = Math.max(...cycleAgos);
+  const cycles: TrainingCycle[] = [];
+
+  for (const cycleAgo of cycleAgos) {
+    const bucketSessions = bucketMap.get(cycleAgo) ?? [];
+    bucketSessions.sort((a, b) => b.date.localeCompare(a.date));
+
+    const cycleNumber = maxCycleAgo - cycleAgo + 1;
+    const isCurrent = cycleAgo === 0;
+    const endDate = addDays(today, -cycleAgo * CYCLE_LENGTH);
+    const startDate = addDays(today, -cycleAgo * CYCLE_LENGTH - (CYCLE_LENGTH - 1));
+
+    const resistanceCount = bucketSessions.filter((s) => s.activityType === 'resistance').length;
+    const cardioCount = bucketSessions.filter((s) => s.activityType === 'cardio').length;
+    const restCount = bucketSessions.filter((s) => s.activityType === 'rest').length;
+    const totalSessions = bucketSessions.length;
+
+    cycles.push({
+      id: `cycle-${cycleNumber}`,
+      cycleNumber,
+      label: `Cycle ${cycleNumber}`,
+      isCurrent,
+      startDate,
+      endDate,
+      dateRangeFormatted: formatCycleDateRange(startDate, endDate),
+      resistanceCount,
+      cardioCount,
+      restCount,
+      totalSessions,
+      sessions: bucketSessions,
+    });
+  }
+
+  cycles.sort((a, b) => b.cycleNumber - a.cycleNumber);
+  return cycles;
+}
+

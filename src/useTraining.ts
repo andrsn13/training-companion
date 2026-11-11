@@ -57,15 +57,11 @@ export function useTraining() {
   const loaded = useRef(false);
   const queue = useRef<Promise<void>>(Promise.resolve());
 
-  const enqueue = useCallback((fn: () => Promise<void>) => {
-    queue.current = queue.current.then(fn).catch((e) => {
-      setError(
-        e instanceof Error && e.message.startsWith('Persistent')
-          ? e.message
-          : 'Your data could not be saved or loaded. Reload the page; previously saved data is unaffected.'
-      );
-    });
-    return queue.current;
+  const enqueue = useCallback(<T>(fn: () => Promise<T>): Promise<T> => {
+    const run = () => fn();
+    const res = queue.current.then(run, run);
+    queue.current = res.then(() => {}, () => {});
+    return res;
   }, []);
 
   const commit = (s: db.Settings | null, r: db.DailyRecord[]) => {
@@ -74,20 +70,27 @@ export function useTraining() {
     setRecords(r);
   };
 
-  // Replays the 8-stage sequence over `input`, syncs changed records to IndexedDB, and updates state
+  // Replays the 8-stage sequence over the active timeline, syncs changed records to IndexedDB, and updates state
   async function sync(s: db.Settings, input: db.DailyRecord[]) {
     const now = new Date().toISOString();
     const t = toISODate();
     const prev = new Map(input.map((r) => [r.date, r]));
     const stored = new Map(st.current.records.map((r) => [r.date, r]));
-    const first = [toISODate(new Date(s.createdAt)), ...input.map((r) => r.date)].sort()[0];
+
+    // Anchor date: The active training prescription is calculated from the anchor date (defaulting to createdAt or today).
+    // Historical sessions before anchorDate do not alter currentStage progression or today's prescription.
+    const rawAnchor = s.anchorDate ?? toISODate(new Date(s.createdAt));
+    const anchor = rawAnchor > t ? t : rawAnchor;
+
     const done = new Map<string, Activity>(
-      input.filter((r) => r.status === 'completed').map((r) => [r.date, r.activityType])
+      input
+        .filter((r) => r.status === 'completed' && !r.isHistorical)
+        .map((r) => [r.date, r.activityType])
     );
 
     const startStage = s.startCycleStage ?? 0;
     const { days, refs } = buildTimeline(
-      first,
+      anchor,
       t,
       { resistance: s.baselineResistanceDate, cardio: s.baselineCardioDate },
       done,
@@ -95,8 +98,14 @@ export function useTraining() {
     );
 
     const changed: db.DailyRecord[] = [];
-    const out: db.DailyRecord[] = days.map((p) => {
+    const allRecordsMap = new Map<string, db.DailyRecord>(input.map((r) => [r.date, r]));
+
+    days.forEach((p) => {
       const o = prev.get(p.date);
+      if (o?.isHistorical) {
+        allRecordsMap.set(p.date, o);
+        return;
+      }
       const nextRec: db.DailyRecord = {
         date: p.date,
         activityType: p.activityType,
@@ -113,8 +122,10 @@ export function useTraining() {
         nextRec.updatedAt = now;
         changed.push(nextRec);
       }
-      return nextRec;
+      allRecordsMap.set(p.date, nextRec);
     });
+
+    const out = Array.from(allRecordsMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
     const moved = refs.resistance !== s.lastResistanceDate || refs.cardio !== s.lastCardioDate;
     const s2: db.Settings = moved
@@ -154,20 +165,46 @@ export function useTraining() {
           );
         }
         const [s, r] = await Promise.all([db.getSettings(), db.getRecords()]);
-        st.current = { settings: s ?? null, records: r };
+        let activeSettings = s ?? null;
+        if (!activeSettings) {
+          const now = new Date().toISOString();
+          const t = toISODate();
+          activeSettings = {
+            id: 'training-settings',
+            lastResistanceDate: t,
+            lastCardioDate: t,
+            baselineResistanceDate: t,
+            baselineCardioDate: t,
+            startCycleStage: 1,
+            anchorDate: t,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await db.commit(activeSettings, []);
+        }
+        st.current = { settings: activeSettings, records: r };
         loaded.current = true;
       }
       const { settings: s, records: r } = st.current;
       if (s) await sync(s, r);
       else commit(null, r);
       setReady(true);
-    }).catch(() => {});
+    }).catch((e) => {
+      setError(
+        e instanceof Error && e.message.startsWith('Persistent')
+          ? e.message
+          : 'Your data could not be saved or loaded. Reload the page; previously saved data is unaffected.'
+      );
+    });
   }, [today]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const act = async (fn: () => Promise<void>) => {
+  const act = async <T>(fn: () => Promise<T>): Promise<T> => {
     setBusy(true);
-    await enqueue(fn);
-    setBusy(false);
+    try {
+      return await enqueue(fn);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const setup = (res: string, cardio: string, startStage = 0) =>
@@ -243,12 +280,14 @@ export function useTraining() {
     act(async () => {
       const now = new Date().toISOString();
       const s = st.current.settings;
+      const todayIso = toISODate();
       const s2: db.Settings = s
         ? {
             ...s,
             baselineResistanceDate: res,
             baselineCardioDate: cardio,
             ...(startStage !== undefined ? { startCycleStage: startStage } : {}),
+            anchorDate: todayIso,
             updatedAt: now,
           }
         : {
@@ -258,12 +297,69 @@ export function useTraining() {
             baselineResistanceDate: res,
             baselineCardioDate: cardio,
             startCycleStage: startStage ?? 0,
+            anchorDate: todayIso,
             createdAt: now,
             updatedAt: now,
           };
       await db.commit(s2, []);
       st.current = { ...st.current, settings: s2 };
       await sync(s2, st.current.records);
+    });
+
+  const logHistoricalSession = (activityType: Activity, date: string, notes: string) =>
+    act(async () => {
+      const now = new Date().toISOString();
+      const todayIso = toISODate();
+      let s = st.current.settings;
+      if (!s) {
+        s = {
+          id: 'training-settings',
+          lastResistanceDate: todayIso,
+          lastCardioDate: todayIso,
+          baselineResistanceDate: todayIso,
+          baselineCardioDate: todayIso,
+          startCycleStage: 1,
+          anchorDate: todayIso,
+          createdAt: now,
+          updatedAt: now,
+        };
+        await db.commit(s, []);
+        st.current.settings = s;
+      }
+      const r = st.current.records;
+
+      if (!date) {
+        throw new Error('Please select a session date.');
+      }
+      if (date > todayIso) {
+        throw new Error('Cannot log sessions for future dates. Please select today or an earlier date.');
+      }
+
+      const existing = r.find((x) => x.date === date && x.status === 'completed');
+      if (existing) {
+        throw new Error('A session is already recorded for this date. Duplicate records are prevented.');
+      }
+
+      const newRec: db.DailyRecord = {
+        date,
+        activityType,
+        status: 'completed',
+        notes: notes.trim(),
+        isHistorical: true,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: now,
+      };
+
+      const existingIdx = r.findIndex((x) => x.date === date);
+      const updated = existingIdx >= 0
+        ? r.map((x, i) => (i === existingIdx ? newRec : x))
+        : [...r, newRec].sort((a, b) => a.date.localeCompare(b.date));
+
+      await db.commit(null, [newRec]);
+      st.current = { ...st.current, records: updated };
+      setRecords(updated);
+      await sync(s, updated);
     });
 
   return {
@@ -283,5 +379,6 @@ export function useTraining() {
     horizon,
     metrics,
     updateStart,
+    logHistoricalSession,
   };
 }

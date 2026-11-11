@@ -6,11 +6,13 @@ export interface Settings {
   lastResistanceDate: string; lastCardioDate: string;
   baselineResistanceDate: string; baselineCardioDate: string; // setup dates; used when no completed session remains
   startCycleStage?: number; // 0 to 7
+  anchorDate?: string; // Anchor date from which current cycle progression is calculated
   createdAt: string; updatedAt: string;
 }
 export interface DailyRecord {
   date: string; activityType: Activity; status: Status; notes: string;
   stageIndex?: number; cycleNumber?: number; readinessTags?: string[];
+  isHistorical?: boolean;
   createdAt: string; updatedAt: string; completedAt: string | null;
 }
 

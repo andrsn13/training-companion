@@ -1,11 +1,12 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
 import { useTraining } from './useTraining';
-import { parseISODate, type Activity } from './scheduler';
+import { groupCycles, parseISODate, type Activity, type TrainingCycle } from './scheduler';
 import { quoteFor, type QuoteKey } from './quotes';
 
 type T = ReturnType<typeof useTraining>;
@@ -261,6 +262,23 @@ const HistoryTabIcon = ({ s = 22 }: { s?: number }) => (
   </svg>
 );
 
+const SettingsGearIcon = ({ s = 22 }: { s?: number }) => (
+  <svg
+    width={s}
+    height={s}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
 const ChevronRightIcon = ({ s = 18 }: { s?: number }) => (
   <svg
     width={s}
@@ -412,14 +430,402 @@ function BottomSheetDrawer({
 
 
 /* ==========================================================================
+   CYCLE-BY-CYCLE HISTORY VIEWS
+   ========================================================================== */
+
+function CycleCard({
+  cycle,
+  onClick,
+}: {
+  cycle: TrainingCycle;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="cycle-card"
+      onClick={onClick}
+      aria-label={`${cycle.label}, ${cycle.dateRangeFormatted}, ${cycle.totalSessions} sessions recorded. Tap to view cycle details.`}
+    >
+      <div className="cycle-card-top">
+        <div className="cycle-card-title-group">
+          <span className="cycle-card-name">{cycle.label}</span>
+          {cycle.isCurrent && <span className="cycle-badge-current">Current</span>}
+        </div>
+        <span className="cycle-card-date">{cycle.dateRangeFormatted}</span>
+      </div>
+      <div className="cycle-card-stats">
+        <span className="cycle-stat-chip resistance">
+          <DumbbellIcon s={14} />
+          {cycle.resistanceCount} Resistance
+        </span>
+        <span className="cycle-stat-chip cardio">
+          <RunIcon s={14} />
+          {cycle.cardioCount} Cardio
+        </span>
+        {cycle.restCount > 0 && (
+          <span className="cycle-stat-chip rest">
+            <BedIcon s={14} />
+            {cycle.restCount} Rest
+          </span>
+        )}
+        <span className="cycle-stat-chip total">
+          {cycle.totalSessions} {cycle.totalSessions === 1 ? 'Session' : 'Sessions'}
+        </span>
+        <span className="cycle-card-arrow" aria-hidden="true">
+          <ChevronRightIcon s={16} />
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function HistoryView({
+  cycles,
+  selectedCycleId,
+  onSelectCycle,
+  onBack,
+}: {
+  cycles: TrainingCycle[];
+  selectedCycleId: string | null;
+  onSelectCycle: (id: string) => void;
+  onBack: () => void;
+}) {
+  const selectedCycle = cycles.find((c) => c.id === selectedCycleId);
+
+  if (selectedCycle) {
+    return (
+      <div className="page-view-container" role="region" aria-label="Cycle Details View">
+        <button
+          type="button"
+          className="btn-back-history"
+          onClick={onBack}
+          aria-label="Back to all cycles"
+        >
+          ← Back to All Cycles
+        </button>
+
+        <div className="cycle-detail-header-card">
+          <div className="cycle-card-top">
+            <div className="cycle-card-title-group">
+              <h2 className="cycle-card-name" style={{ fontSize: '1.25rem' }}>{selectedCycle.label}</h2>
+              {selectedCycle.isCurrent && <span className="cycle-badge-current">Current</span>}
+            </div>
+            <span className="cycle-card-date">{selectedCycle.dateRangeFormatted}</span>
+          </div>
+          <div className="cycle-card-stats">
+            <span className="cycle-stat-chip resistance">
+              <DumbbellIcon s={14} />
+              {selectedCycle.resistanceCount} Resistance
+            </span>
+            <span className="cycle-stat-chip cardio">
+              <RunIcon s={14} />
+              {selectedCycle.cardioCount} Cardio
+            </span>
+            {selectedCycle.restCount > 0 && (
+              <span className="cycle-stat-chip rest">
+                <BedIcon s={14} />
+                {selectedCycle.restCount} Rest
+              </span>
+            )}
+            <span className="cycle-stat-chip total">
+              {selectedCycle.totalSessions} {selectedCycle.totalSessions === 1 ? 'Session' : 'Sessions'}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-lavender)', margin: 0 }}>
+            Recorded Sessions ({selectedCycle.sessions.length})
+          </h3>
+
+          {selectedCycle.sessions.length === 0 ? (
+            <div style={{ padding: '1.5rem', textAlign: 'center', background: 'rgba(28, 24, 46, 0.45)', borderRadius: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              No sessions recorded in this cycle yet.
+            </div>
+          ) : (
+            selectedCycle.sessions.map((s, idx) => (
+              <div key={`${s.date}-${idx}`} className="session-detail-card">
+                <div className="session-card-top">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <span className={`history-item-badge ${s.activityType}`}>
+                      {s.activityType === 'resistance' ? 'Resistance' : s.activityType === 'cardio' ? 'Cardio' : 'Rest'}
+                    </span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff' }}>
+                      {fmt(s.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#64E7A0', fontWeight: 600 }}>✓ Completed</span>
+                </div>
+                {s.notes && (
+                  <div className="session-note-box">
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Note:</span>
+                    {s.notes}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-view-container" role="region" aria-label="Main History View">
+      <div className="page-header">
+        <h1 className="page-title">Training History</h1>
+        <p className="page-subtitle">Cycle-by-cycle archive of your training journey</p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+        {cycles.length === 0 ? (
+          <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'rgba(28, 24, 46, 0.45)', borderRadius: '1.25rem', color: 'var(--text-muted)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '1.75rem' }}>📋</span>
+            <span style={{ fontWeight: 600, color: '#fff', fontSize: '1rem' }}>No completed cycles recorded yet</span>
+            <span>Log workouts on the Today screen or add past sessions in Settings!</span>
+          </div>
+        ) : (
+          cycles.map((c) => (
+            <CycleCard key={c.id} cycle={c} onClick={() => onSelectCycle(c.id)} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================================
+   SETTINGS VIEW (Centralized Configuration & Historical Logging)
+   ========================================================================== */
+
+function SettingsView({
+  today,
+  currentStageIndex,
+  onUpdateStage,
+  onSavePastSession,
+}: {
+  today: string;
+  currentStageIndex: number;
+  onUpdateStage: (stage: number) => void;
+  onSavePastSession: (activity: Activity, date: string, notes: string) => Promise<void>;
+}) {
+  const [activity, setActivity] = useState<Activity>('resistance');
+  const [date, setDate] = useState<string>(today);
+  const [notes, setNotes] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus(null);
+
+    if (!date) {
+      setStatus({ type: 'error', message: 'Please select a session date.' });
+      return;
+    }
+    if (date > today) {
+      setStatus({ type: 'error', message: 'Cannot log sessions for future dates. Please select today or an earlier date.' });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onSavePastSession(activity, date, notes);
+      setStatus({ type: 'success', message: 'Session saved.' });
+      setNotes('');
+    } catch (err: any) {
+      setStatus({
+        type: 'error',
+        message: err?.message || 'Unable to save session. A session may already be recorded for this date.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="page-view-container" role="region" aria-label="Settings Tab">
+      <div className="page-header">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle">Centralized application configuration and past workout logging</p>
+      </div>
+
+      {/* Section 1: Log Past Session */}
+      <section className="settings-card" aria-label="Log Past Session">
+        <div className="settings-card-header">
+          <h2 className="settings-card-title">Log Past Session</h2>
+          <p className="settings-card-desc">
+            Record a previous workout session into your training history. It will be associated with the appropriate training cycle.
+          </p>
+        </div>
+
+        {status && (
+          <div className={`alert-banner ${status.type}`} role="alert">
+            <span>{status.type === 'success' ? '✓' : '⚠️'}</span>
+            <span>{status.message}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          {/* Activity selector */}
+          <div className="form-field">
+            <span className="form-label">Activity Type</span>
+            <div className="activity-toggle-group">
+              <button
+                type="button"
+                className={`activity-toggle-btn ${activity === 'resistance' ? 'is-active resistance' : ''}`}
+                onClick={() => setActivity('resistance')}
+              >
+                <DumbbellIcon s={18} />
+                <span>Resistance</span>
+              </button>
+              <button
+                type="button"
+                className={`activity-toggle-btn ${activity === 'cardio' ? 'is-active cardio' : ''}`}
+                onClick={() => setActivity('cardio')}
+              >
+                <RunIcon s={18} />
+                <span>Cardio</span>
+              </button>
+              <button
+                type="button"
+                className={`activity-toggle-btn ${activity === 'rest' ? 'is-active rest' : ''}`}
+                onClick={() => setActivity('rest')}
+              >
+                <BedIcon s={18} />
+                <span>Rest</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Date picker */}
+          <div className="form-field">
+            <label className="form-label" htmlFor="past-session-date">Session Date</label>
+            <input
+              id="past-session-date"
+              type="date"
+              className="settings-input"
+              value={date}
+              max={today}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setStatus(null);
+              }}
+              required
+            />
+          </div>
+
+          {/* Notes textarea */}
+          <div className="form-field">
+            <label className="form-label" htmlFor="past-session-notes">Notes (Optional)</label>
+            <textarea
+              id="past-session-notes"
+              className="settings-textarea"
+              placeholder="Add a note about this session..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          {/* Submit button */}
+          <button
+            type="submit"
+            className="btn-primary-save"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Session'}
+          </button>
+        </form>
+      </section>
+
+      {/* Section 2: Current Cycle Position (moved from Calendar Sheet modal) */}
+      <section className="settings-card" aria-label="Current Cycle Position">
+        <div className="settings-card-header">
+          <h2 className="settings-card-title">Current Cycle Position</h2>
+          <p className="settings-card-desc">
+            Adjust where you currently are in the 8-day rolling cycle. The schedule will automatically roll forward from here.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+          {SIX_STEPS.map((node) => {
+            const isSelected = getStepNumber(currentStageIndex) === node.step;
+            const stageToSet = node.step === 6 ? 5 : node.step - 1;
+            return (
+              <button
+                key={node.step}
+                type="button"
+                className={`sheet-step-btn ${isSelected ? 'is-selected' : ''}`}
+                onClick={() => {
+                  hapticPulse(12);
+                  onUpdateStage(stageToSet);
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    background: isSelected ? '#8B78F6' : 'rgba(255, 255, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    flexShrink: 0,
+                  }}
+                >
+                  {node.activity === 'resistance' ? (
+                    <DumbbellIcon s={16} />
+                  ) : node.activity === 'cardio' ? (
+                    <RunIcon s={16} />
+                  ) : node.step === 6 ? (
+                    <DotsIcon s={14} />
+                  ) : (
+                    <BedIcon s={16} />
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff', overflowWrap: 'break-word' }}>
+                    Step {node.step}: {node.label === '3 Rest' ? '3-Day Recovery Plateau' : node.label === 'Resist.' ? 'Resistance Training' : node.label === 'Cardio' ? 'Cardio Session' : 'Rest Day'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflowWrap: 'break-word' }}>{node.desc}</div>
+                </div>
+                {isSelected && <span style={{ color: '#8B78F6', fontWeight: 700, flexShrink: 0 }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Section 3: About 8-Day Cycle */}
+      <section className="settings-card" aria-label="About the Training Architecture">
+        <div className="settings-card-header">
+          <h2 className="settings-card-title">About the 8-Day Cycle</h2>
+          <p className="settings-card-desc">
+            The 8-day rolling microcycle optimizes neuromuscular recovery by interleaving heavy resistance sessions with active aerobic conditioning and dedicated recovery plateaus.
+          </p>
+        </div>
+        <div style={{ fontSize: '0.8125rem', color: 'var(--text-lavender)', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div>• <strong>2 Heavy Resistance Bouts:</strong> Maximizes muscle protein synthesis and progressive overload.</div>
+          <div>• <strong>1 Squished Cardio Session:</strong> Preserves aerobic capacity without interfering with muscular hypertrophy.</div>
+          <div>• <strong>5 Full Rest Days:</strong> Ensures deep CNS restoration and complete glycogen replenishment.</div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ==========================================================================
    MAIN APP COMPONENT
    ========================================================================== */
 
 export default function App() {
   const t = useTraining();
-  const [tab, setTab] = useState<'today' | 'history'>('today');
+  const [tab, setTab] = useState<'today' | 'history' | 'settings'>('today');
+  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
-  const [showCalendarSheet, setShowCalendarSheet] = useState(false);
   const [inspectedStep, setInspectedStep] = useState<number | null>(null);
   const [isMorphing, setIsMorphing] = useState(false);
   const [shockwaveKey, setShockwaveKey] = useState(0);
@@ -440,6 +846,8 @@ export default function App() {
   const activeStep = inspectedStep ?? currentStep;
   const isDoneToday = todayRec?.status === 'completed';
 
+  const cycles = useMemo(() => groupCycles(t.records, t.today), [t.records, t.today]);
+
   const setProgrammaticLock = () => {
     isProgrammaticScroll.current = true;
     if (programmaticScrollTimeout.current) {
@@ -450,30 +858,25 @@ export default function App() {
     }, 700);
   };
 
-  // Keep bottom tab in sync with scroll position and calculate parallax ratio
+  const navigateToTab = (nextTab: 'today' | 'history' | 'settings') => {
+    hapticPulse(10);
+    setProgrammaticLock();
+    setTab(nextTab);
+    canvasRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  // Keep scroll ratio in sync for Screen 1 parallax
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const top = e.currentTarget.scrollTop;
     const vh = window.innerHeight || 800;
     const ratio = Math.min(1, Math.max(0, top / (vh * 0.7)));
     setScrollRatio(ratio);
-
-    // If scrolling programmatically via tab click or CTA, preserve the target tab
-    // to prevent intermediate positional jitter or bouncing of the navigation pill
-    if (isProgrammaticScroll.current) return;
-
-    const threshold = vh * 0.45;
-    if (top > threshold) {
-      if (tab !== 'history') setTab('history');
-    } else {
-      if (tab !== 'today') setTab('today');
-    }
   };
 
   // Smooth scroll down to Screen 2
   const scrollToScreen2 = () => {
     hapticPulse(10);
     setProgrammaticLock();
-    setTab('history');
     screen2Ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -481,7 +884,6 @@ export default function App() {
   const scrollToTop = () => {
     hapticPulse(8);
     setProgrammaticLock();
-    setTab('today');
     canvasRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -633,10 +1035,12 @@ export default function App() {
       onWheel={handleWheel}
     >
       {/* ====================================================================
-          SCREEN 1: CLEAR HIERARCHY (100dvh — Full Screen Bleed with Parallax Depth)
+          SCREEN 1 & SCREEN 2: TODAY LANDING EXPERIENCE
           ==================================================================== */}
-      <section
-        className="screen-1"
+      {tab === 'today' && (
+        <>
+          <section
+            className="screen-1"
         aria-label="Today's Training Overview"
         style={{
           transform: `scale(${1 - scrollRatio * 0.04}) translateY(${scrollRatio * 18}px)`,
@@ -648,7 +1052,7 @@ export default function App() {
         {/* Layered Celestial Background Artwork (Extends Edge-to-Edge Under Status Bar) */}
         <CelestialBackground />
 
-        {/* Top Header: Date & Calendar Button (Spaced Below Phone Status Bar) */}
+        {/* Top Header: Date & Settings Button (Spaced Below Phone Status Bar) */}
         <header className="screen-1-header">
           <span className="screen-1-date">
             {fmt(t.today, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -656,13 +1060,11 @@ export default function App() {
           <button
             type="button"
             className="btn-calendar-badge"
-            aria-label="Adjust cycle position"
+            aria-label="Settings"
             onPointerDown={() => hapticPulse(10)}
-            onClick={() => {
-              setShowCalendarSheet(true);
-            }}
+            onClick={() => navigateToTab('settings')}
           >
-            <CalendarBadgeIcon s={26} />
+            <SettingsGearIcon s={24} />
           </button>
         </header>
 
@@ -901,40 +1303,29 @@ export default function App() {
           </div>
         </div>
 
-        {/* Recent Training History Section */}
+        {/* Recent Training History Section (Limited to 3 most recent cycles) */}
         <div className="history-section">
-          <h3 className="history-section-title">Training History</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <h3 className="history-section-title">Training History</h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Recent Cycles</span>
+          </div>
+
           <div className="history-list">
-            {t.records.filter((r) => r.status === 'completed').length > 0 ? (
-              t.records
-                .filter((r) => r.status === 'completed')
-                .slice(-5)
-                .reverse()
-                .map((rec, idx) => (
-                  <div
-                    key={rec.date}
-                    className="history-item-row"
-                    style={{ '--item-idx': idx } as React.CSSProperties}
-                  >
-                    <div className="history-item-info">
-                      <span className={`history-item-badge ${rec.activityType}`}>
-                        {rec.activityType === 'resistance'
-                          ? 'Resistance'
-                          : rec.activityType === 'cardio'
-                            ? 'Cardio'
-                            : 'Rest'}
-                      </span>
-                      <span className="history-item-date">
-                        {fmt(rec.date, { weekday: 'short', month: 'short', day: 'numeric' })}
-                      </span>
-                    </div>
-                    <span className="history-item-status">✓ Completed</span>
-                  </div>
-                ))
+            {cycles.length > 0 ? (
+              cycles.slice(0, 3).map((cycle) => (
+                <CycleCard
+                  key={cycle.id}
+                  cycle={cycle}
+                  onClick={() => {
+                    setSelectedCycleId(cycle.id);
+                    navigateToTab('history');
+                  }}
+                />
+              ))
             ) : (
               <div
                 style={{
-                  padding: '1rem',
+                  padding: '1.25rem 1rem',
                   textAlign: 'center',
                   background: 'rgba(28, 24, 46, 0.45)',
                   borderRadius: '1rem',
@@ -942,10 +1333,23 @@ export default function App() {
                   fontSize: '0.8125rem',
                 }}
               >
-                No completed sessions yet. Tap the orb to log today's workout!
+                No completed cycles recorded yet. Tap the orb to log today's workout or log past sessions in Settings!
               </div>
             )}
           </div>
+
+          {/* Primary View All History Action Button */}
+          <button
+            type="button"
+            className="btn-view-all-history"
+            onClick={() => {
+              setSelectedCycleId(null);
+              navigateToTab('history');
+            }}
+          >
+            <span>View All History</span>
+            <ChevronRightIcon s={16} />
+          </button>
         </div>
 
         {/* Card 2: Quote Card */}
@@ -957,6 +1361,34 @@ export default function App() {
           <span className="quote-author">— {quote.author}</span>
         </div>
       </section>
+      </>
+      )}
+
+      {/* ====================================================================
+          HISTORY TAB VIEW (Cycle-by-Cycle & Details View)
+          ==================================================================== */}
+      {tab === 'history' && (
+        <HistoryView
+          cycles={cycles}
+          selectedCycleId={selectedCycleId}
+          onSelectCycle={setSelectedCycleId}
+          onBack={() => setSelectedCycleId(null)}
+        />
+      )}
+
+      {/* ====================================================================
+          SETTINGS TAB VIEW (Configuration & Historical Logging)
+          ==================================================================== */}
+      {tab === 'settings' && (
+        <SettingsView
+          today={t.today}
+          currentStageIndex={stageIndex}
+          onUpdateStage={(stage) =>
+            t.updateStart(t.settings?.baselineResistanceDate ?? t.today, t.settings?.baselineCardioDate ?? t.today, stage)
+          }
+          onSavePastSession={t.logHistoricalSession}
+        />
+      )}
 
       {/* ====================================================================
           INFO BOTTOM SHEET (Cycle Explanation)
@@ -982,68 +1414,7 @@ export default function App() {
       </BottomSheetDrawer>
 
       {/* ====================================================================
-          CALENDAR BOTTOM SHEET (Cycle Position Adjuster)
-          ==================================================================== */}
-      <BottomSheetDrawer
-        isOpen={showCalendarSheet}
-        title="Select Today's Cycle Step"
-        onClose={() => setShowCalendarSheet(false)}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {SIX_STEPS.map((node) => {
-            const isSelected = node.step === currentStep;
-            return (
-              <button
-                key={node.step}
-                type="button"
-                className={`sheet-step-btn ${isSelected ? 'is-selected' : ''}`}
-                onPointerDown={() => hapticPulse(8)}
-                onClick={async () => {
-                  hapticPulse([12, 30]);
-                  const targetStage = node.step === 6 ? 5 : node.step - 1;
-                  await t.updateStart(t.today, t.today, targetStage);
-                  setShowCalendarSheet(false);
-                }}
-              >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    minWidth: '32px',
-                    borderRadius: '50%',
-                    background: node.isWorkout ? 'linear-gradient(135deg, #7C6EE6, #9282F8)' : 'rgba(28, 24, 44, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    flexShrink: 0,
-                  }}
-                >
-                  {node.activity === 'resistance' ? (
-                    <DumbbellIcon s={16} />
-                  ) : node.activity === 'cardio' ? (
-                    <RunIcon s={16} />
-                  ) : node.step === 6 ? (
-                    <DotsIcon s={14} />
-                  ) : (
-                    <BedIcon s={16} />
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff', overflowWrap: 'break-word' }}>
-                    Step {node.step}: {node.label === '3 Rest' ? '3-Day Recovery Plateau' : node.label === 'Resist.' ? 'Resistance Training' : node.label === 'Cardio' ? 'Cardio Session' : 'Rest Day'}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflowWrap: 'break-word' }}>{node.desc}</div>
-                </div>
-                {isSelected && <span style={{ color: '#8B78F6', fontWeight: 700, flexShrink: 0 }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      </BottomSheetDrawer>
-
-      {/* ====================================================================
-          FIXED BOTTOM TAB BAR (Today / History)
+          FIXED BOTTOM TAB BAR (Today / History / Settings — Sliding Liquid Pill)
           ==================================================================== */}
       <nav className="tabs-bar" aria-label="Primary Mobile Navigation">
         <div className="tabs-inner">
@@ -1051,14 +1422,19 @@ export default function App() {
             <div
               className="tabs-sliding-pill"
               style={{
-                transform: tab === 'today' ? 'translate3d(0%, 0, 0)' : 'translate3d(100%, 0, 0)',
+                transform:
+                  tab === 'today'
+                    ? 'translate3d(0%, 0, 0)'
+                    : tab === 'history'
+                      ? 'translate3d(100%, 0, 0)'
+                      : 'translate3d(200%, 0, 0)',
               }}
             />
             <button
               type="button"
               className={`tab-btn ${tab === 'today' ? 'is-active' : ''}`}
               aria-current={tab === 'today' ? 'page' : undefined}
-              onClick={scrollToTop}
+              onClick={() => navigateToTab('today')}
             >
               <HomeTabIcon s={20} />
               <span>Today</span>
@@ -1067,10 +1443,22 @@ export default function App() {
               type="button"
               className={`tab-btn ${tab === 'history' ? 'is-active' : ''}`}
               aria-current={tab === 'history' ? 'page' : undefined}
-              onClick={scrollToScreen2}
+              onClick={() => {
+                setSelectedCycleId(null);
+                navigateToTab('history');
+              }}
             >
               <HistoryTabIcon s={20} />
               <span>History</span>
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${tab === 'settings' ? 'is-active' : ''}`}
+              aria-current={tab === 'settings' ? 'page' : undefined}
+              onClick={() => navigateToTab('settings')}
+            >
+              <SettingsGearIcon s={20} />
+              <span>Settings</span>
             </button>
           </div>
         </div>
