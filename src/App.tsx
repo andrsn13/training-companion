@@ -352,18 +352,42 @@ function BottomSheetDrawer({
   onClose: () => void;
   children: ReactNode;
 }) {
-  if (!isOpen) return null;
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (isOpen) {
+      setShouldRender(true);
+      // Wait two frames so initial DOM layout is committed before animating in
+      const r1 = requestAnimationFrame(() => {
+        const r2 = requestAnimationFrame(() => {
+          setIsActive(true);
+        });
+        return () => cancelAnimationFrame(r2);
+      });
+      return () => cancelAnimationFrame(r1);
+    } else {
+      setIsActive(false);
+      timer = setTimeout(() => {
+        setShouldRender(false);
+      }, 340);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="sheet-overlay"
+      className={`sheet-overlay ${isActive ? 'is-open' : 'is-closing'}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
       role="dialog"
       aria-modal="true"
     >
-      <div className="sheet-modal">
+      <div className={`sheet-modal ${isActive ? 'is-open' : 'is-closing'}`}>
         <div className="sheet-handle" />
         <div className="sheet-header">
           <h2 className="sheet-title">{title}</h2>
@@ -371,7 +395,7 @@ function BottomSheetDrawer({
             <CloseIcon s={20} />
           </button>
         </div>
-        {children}
+        <div className="sheet-body-content">{children}</div>
       </div>
     </div>
   );
@@ -390,6 +414,7 @@ export default function App() {
   const [inspectedStep, setInspectedStep] = useState<number | null>(null);
   const [isMorphing, setIsMorphing] = useState(false);
   const [shockwaveKey, setShockwaveKey] = useState(0);
+  const [lastAction, setLastAction] = useState<'complete' | 'undo' | null>(null);
   const [scrollRatio, setScrollRatio] = useState(0);
 
   const screen2Ref = useRef<HTMLDivElement>(null);
@@ -554,16 +579,18 @@ export default function App() {
       setShockwaveKey((k) => k + 1);
 
       if (isDoneToday) {
+        setLastAction('undo');
         hapticPulse(12);
         t.undo(todayRec.date);
       } else {
+        setLastAction('complete');
         hapticPulse([15, 45, 28]);
         t.complete(todayRec.date);
       }
 
       setTimeout(() => {
         setIsMorphing(false);
-      }, 600);
+      }, 650);
     } else {
       hapticPulse(10);
     }
@@ -587,7 +614,8 @@ export default function App() {
         style={{
           transform: `scale(${1 - scrollRatio * 0.04}) translateY(${scrollRatio * 18}px)`,
           opacity: 1 - scrollRatio * 0.25,
-          transition: 'transform 0.08s ease-out, opacity 0.08s ease-out',
+          transition: 'transform 0.12s var(--ease-spring-fluid), opacity 0.12s var(--ease-dissolve)',
+          willChange: 'transform, opacity',
         }}
       >
         {/* Layered Celestial Background Artwork (Extends Edge-to-Edge Under Status Bar) */}
@@ -621,9 +649,28 @@ export default function App() {
 
           {/* High-Fidelity Compound Apple Glassmorphism Orb */}
           <div className="center-orb-container">
-            <div className="orb-ambient-glow" />
+            <div className={`orb-ambient-glow ${isDoneToday ? 'is-done-glow' : ''}`} />
             {shockwaveKey > 0 && (
-              <div key={shockwaveKey} className="orb-shockwave-ring" aria-hidden="true" />
+              <>
+                <div key={`shockwave-1-${shockwaveKey}`} className="orb-shockwave-ring" aria-hidden="true" />
+                <div key={`shockwave-2-${shockwaveKey}`} className="orb-shockwave-ring secondary" aria-hidden="true" />
+              </>
+            )}
+            {shockwaveKey > 0 && isDoneToday && (
+              <div className="orb-particles-burst" aria-hidden="true" key={`burst-${shockwaveKey}`}>
+                {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, idx) => (
+                  <span
+                    key={idx}
+                    className="orb-particle"
+                    style={
+                      {
+                        '--particle-deg': `${angle}deg`,
+                        '--particle-dist': `${68 + (idx % 3) * 16}px`,
+                      } as React.CSSProperties
+                    }
+                  />
+                ))}
+              </div>
             )}
             <button
               type="button"
@@ -754,6 +801,30 @@ export default function App() {
               );
             })}
           </div>
+          {inspectedStep !== null && SIX_STEPS[inspectedStep - 1] && (
+            <div className="inspect-step-card" role="region" aria-label={`Details for Step ${inspectedStep}`}>
+              <div className="inspect-step-header">
+                <div className="inspect-step-badge">
+                  <span className="inspect-badge-dot" />
+                  Step {inspectedStep}: {SIX_STEPS[inspectedStep - 1].label}
+                </div>
+                <button
+                  type="button"
+                  className="btn-inspect-close"
+                  onClick={() => {
+                    hapticPulse(6);
+                    setInspectedStep(null);
+                  }}
+                  aria-label="Close step details"
+                >
+                  <CloseIcon s={16} />
+                </button>
+              </div>
+              <p className="inspect-step-desc">
+                {SIX_STEPS[inspectedStep - 1].desc}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Card 1: Cycle Progress Card */}
@@ -804,8 +875,12 @@ export default function App() {
                 .filter((r) => r.status === 'completed')
                 .slice(-5)
                 .reverse()
-                .map((rec) => (
-                  <div key={rec.date} className="history-item-row">
+                .map((rec, idx) => (
+                  <div
+                    key={rec.date}
+                    className="history-item-row"
+                    style={{ '--item-idx': idx } as React.CSSProperties}
+                  >
                     <div className="history-item-info">
                       <span className={`history-item-badge ${rec.activityType}`}>
                         {rec.activityType === 'resistance'
@@ -937,24 +1012,32 @@ export default function App() {
           ==================================================================== */}
       <nav className="tabs-bar" aria-label="Primary Mobile Navigation">
         <div className="tabs-inner">
-          <button
-            type="button"
-            className="tab-btn"
-            aria-current={tab === 'today' ? 'page' : undefined}
-            onClick={scrollToTop}
-          >
-            <HomeTabIcon s={22} />
-            <span>Today</span>
-          </button>
-          <button
-            type="button"
-            className="tab-btn"
-            aria-current={tab === 'history' ? 'page' : undefined}
-            onClick={scrollToScreen2}
-          >
-            <HistoryTabIcon s={22} />
-            <span>History</span>
-          </button>
+          <div className="tabs-slider-track">
+            <div
+              className="tabs-sliding-pill"
+              style={{
+                transform: tab === 'today' ? 'translate3d(0%, 0, 0)' : 'translate3d(100%, 0, 0)',
+              }}
+            />
+            <button
+              type="button"
+              className={`tab-btn ${tab === 'today' ? 'is-active' : ''}`}
+              aria-current={tab === 'today' ? 'page' : undefined}
+              onClick={scrollToTop}
+            >
+              <HomeTabIcon s={20} />
+              <span>Today</span>
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${tab === 'history' ? 'is-active' : ''}`}
+              aria-current={tab === 'history' ? 'page' : undefined}
+              onClick={scrollToScreen2}
+            >
+              <HistoryTabIcon s={20} />
+              <span>History</span>
+            </button>
+          </div>
         </div>
       </nav>
     </div>
