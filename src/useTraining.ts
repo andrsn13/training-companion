@@ -241,15 +241,26 @@ export function useTraining() {
 
   const updateStart = (res: string, cardio: string, startStage?: number) =>
     act(async () => {
+      const now = new Date().toISOString();
       const s = st.current.settings;
-      if (!s) return;
-      const s2: db.Settings = {
-        ...s,
-        baselineResistanceDate: res,
-        baselineCardioDate: cardio,
-        ...(startStage !== undefined ? { startCycleStage: startStage } : {}),
-        updatedAt: new Date().toISOString(),
-      };
+      const s2: db.Settings = s
+        ? {
+            ...s,
+            baselineResistanceDate: res,
+            baselineCardioDate: cardio,
+            ...(startStage !== undefined ? { startCycleStage: startStage } : {}),
+            updatedAt: now,
+          }
+        : {
+            id: 'training-settings',
+            lastResistanceDate: res,
+            lastCardioDate: cardio,
+            baselineResistanceDate: res,
+            baselineCardioDate: cardio,
+            startCycleStage: startStage ?? 0,
+            createdAt: now,
+            updatedAt: now,
+          };
       await db.commit(s2, []);
       st.current = { ...st.current, settings: s2 };
       await sync(s2, st.current.records);

@@ -57,6 +57,7 @@ const HeroBedIcon = ({ s = 90 }: { s?: number }) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      style={{ width: '56%', height: 'auto', maxHeight: '56%', display: 'block' }}
     >
       {/* Left headboard post */}
       <line x1="8" y1="10" x2="8" y2="48" strokeWidth="5.2" />
@@ -93,6 +94,7 @@ const HeroDumbbellIcon = ({ s = 84 }: { s?: number }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
+    style={{ width: '54%', height: 'auto', maxHeight: '54%', display: 'block' }}
   >
     <rect x="14" y="10" width="7" height="28" rx="3.5" strokeWidth="4.2" fill="currentColor" fillOpacity="0.2" />
     <rect x="59" y="10" width="7" height="28" rx="3.5" strokeWidth="4.2" fill="currentColor" fillOpacity="0.2" />
@@ -113,6 +115,7 @@ const HeroRunIcon = ({ s = 80 }: { s?: number }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
+    style={{ width: '50%', height: 'auto', maxHeight: '50%', display: 'block' }}
   >
     <circle cx="41" cy="12" r="5.5" fill="currentColor" stroke="none" />
     <path d="M36 23l-5 13" strokeWidth="4.2" />
@@ -367,6 +370,7 @@ export default function App() {
   const [showCalendarSheet, setShowCalendarSheet] = useState(false);
   const [inspectedStep, setInspectedStep] = useState<number | null>(null);
   const screen2Ref = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   const todayRec = t.records.find((r) => r.date === t.today);
   const stageIndex = t.plan?.stageIndex ?? 1; // 0..7
@@ -374,10 +378,29 @@ export default function App() {
   const activeStep = inspectedStep ?? currentStep;
   const isDoneToday = todayRec?.status === 'completed';
 
+  // Keep bottom tab in sync with scroll position
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget.scrollTop;
+    const threshold = window.innerHeight * 0.45;
+    if (top > threshold) {
+      if (tab !== 'history') setTab('history');
+    } else {
+      if (tab !== 'today') setTab('today');
+    }
+  };
+
   // Smooth scroll down to Screen 2
   const scrollToScreen2 = () => {
     hapticPulse(10);
+    setTab('history');
     screen2Ref.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Smooth scroll up to Screen 1
+  const scrollToTop = () => {
+    hapticPulse(8);
+    setTab('today');
+    canvasRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Determine current activity and titles
@@ -454,7 +477,7 @@ export default function App() {
   };
 
   return (
-    <div className="phone-canvas">
+    <div ref={canvasRef} className="phone-canvas" onScroll={handleScroll}>
       {/* ====================================================================
           SCREEN 1: CLEAR HIERARCHY (100dvh — The Only Thing Visible on Open)
           ==================================================================== */}
@@ -625,6 +648,69 @@ export default function App() {
           </div>
         </div>
 
+        {/* Training Metrics Grid */}
+        <div className="metrics-grid" aria-label="Training stats">
+          <div className="metric-tile">
+            <span className="metric-tile-label">Completed Cycles</span>
+            <span className="metric-tile-val">{t.metrics.completedCycles}</span>
+          </div>
+          <div className="metric-tile">
+            <span className="metric-tile-label">Workouts Done</span>
+            <span className="metric-tile-val">{t.metrics.totalWorkoutsCompleted}</span>
+          </div>
+          <div className="metric-tile">
+            <span className="metric-tile-label">Current Streak</span>
+            <span className="metric-tile-val">{t.metrics.currentStreakDays}d</span>
+          </div>
+          <div className="metric-tile">
+            <span className="metric-tile-label">Adherence</span>
+            <span className="metric-tile-val">{t.metrics.adherencePercent}%</span>
+          </div>
+        </div>
+
+        {/* Recent Training History Section */}
+        <div className="history-section">
+          <h3 className="history-section-title">Training History</h3>
+          <div className="history-list">
+            {t.records.filter((r) => r.status === 'completed').length > 0 ? (
+              t.records
+                .filter((r) => r.status === 'completed')
+                .slice(-5)
+                .reverse()
+                .map((rec) => (
+                  <div key={rec.date} className="history-item-row">
+                    <div className="history-item-info">
+                      <span className={`history-item-badge ${rec.activityType}`}>
+                        {rec.activityType === 'resistance'
+                          ? 'Resistance'
+                          : rec.activityType === 'cardio'
+                            ? 'Cardio'
+                            : 'Rest'}
+                      </span>
+                      <span className="history-item-date">
+                        {fmt(rec.date, { weekday: 'short', month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <span className="history-item-status">✓ Completed</span>
+                  </div>
+                ))
+            ) : (
+              <div
+                style={{
+                  padding: '1rem',
+                  textAlign: 'center',
+                  background: 'rgba(28, 24, 46, 0.45)',
+                  borderRadius: '1rem',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8125rem',
+                }}
+              >
+                No completed sessions yet. Tap the orb to log today's workout!
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Card 2: Quote Card */}
         <div className="quote-card">
           <span className="quote-mark" aria-hidden="true">
@@ -644,7 +730,7 @@ export default function App() {
         onClose={() => setShowInfoSheet(false)}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--text-lavender)' }}>
-          <p style={{ fontSize: '0.9375rem', lineHeight: '1.45', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: '0.9375rem', lineHeight: '1.45', color: 'var(--text-muted)', overflowWrap: 'break-word' }}>
             This cycle is physiologically grounded rather than tied to a 7-day calendar week:
           </p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9375rem' }}>
@@ -684,6 +770,7 @@ export default function App() {
                   background: isSelected ? 'rgba(139, 120, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)',
                   border: isSelected ? '1px solid #8B78F6' : '1px solid rgba(255, 255, 255, 0.08)',
                   textAlign: 'left',
+                  boxSizing: 'border-box',
                 }}
                 onClick={async () => {
                   hapticPulse([12, 30]);
@@ -696,12 +783,14 @@ export default function App() {
                   style={{
                     width: '32px',
                     height: '32px',
+                    minWidth: '32px',
                     borderRadius: '50%',
                     background: node.isWorkout ? 'linear-gradient(135deg, #7C6EE6, #9282F8)' : 'rgba(28, 24, 44, 0.9)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
+                    flexShrink: 0,
                   }}
                 >
                   {node.activity === 'resistance' ? (
@@ -714,13 +803,13 @@ export default function App() {
                     <BedIcon s={16} />
                   )}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff', overflowWrap: 'break-word' }}>
                     Step {node.step}: {node.label === '3 Rest' ? '3-Day Recovery Plateau' : node.label === 'Resist.' ? 'Resistance Training' : node.label === 'Cardio' ? 'Cardio Session' : 'Rest Day'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{node.desc}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflowWrap: 'break-word' }}>{node.desc}</div>
                 </div>
-                {isSelected && <span style={{ color: '#8B78F6', fontWeight: 700 }}>✓</span>}
+                {isSelected && <span style={{ color: '#8B78F6', fontWeight: 700, flexShrink: 0 }}>✓</span>}
               </button>
             );
           })}
@@ -736,11 +825,7 @@ export default function App() {
             type="button"
             className="tab-btn"
             aria-current={tab === 'today' ? 'page' : undefined}
-            onClick={() => {
-              hapticPulse(8);
-              setTab('today');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onClick={scrollToTop}
           >
             <HomeTabIcon s={22} />
             <span>Today</span>
@@ -749,11 +834,7 @@ export default function App() {
             type="button"
             className="tab-btn"
             aria-current={tab === 'history' ? 'page' : undefined}
-            onClick={() => {
-              hapticPulse(8);
-              setTab('history');
-              scrollToScreen2();
-            }}
+            onClick={scrollToScreen2}
           >
             <HistoryTabIcon s={22} />
             <span>History</span>
