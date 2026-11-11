@@ -127,6 +127,23 @@ const HeroRunIcon = ({ s = 80 }: { s?: number }) => (
   </svg>
 );
 
+const HeroCheckIcon = ({ s = 80 }: { s?: number }) => (
+  <svg
+    width={s}
+    height={s}
+    viewBox="0 0 64 64"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    style={{ width: '50%', height: 'auto', maxHeight: '50%', display: 'block' }}
+  >
+    <polyline points="14 34 26 46 50 18" />
+  </svg>
+);
+
 const DumbbellIcon = ({ s = 24 }: { s?: number }) => (
   <svg
     width={s}
@@ -371,8 +388,15 @@ export default function App() {
   const [showInfoSheet, setShowInfoSheet] = useState(false);
   const [showCalendarSheet, setShowCalendarSheet] = useState(false);
   const [inspectedStep, setInspectedStep] = useState<number | null>(null);
+  const [isMorphing, setIsMorphing] = useState(false);
+  const [shockwaveKey, setShockwaveKey] = useState(0);
+  const [scrollRatio, setScrollRatio] = useState(0);
+
   const screen2Ref = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchStartTime = useRef<number>(0);
+  const isAutoScrolling = useRef<boolean>(false);
 
   const todayRec = t.records.find((r) => r.date === t.today);
   const stageIndex = t.plan?.stageIndex ?? 1; // 0..7
@@ -380,10 +404,14 @@ export default function App() {
   const activeStep = inspectedStep ?? currentStep;
   const isDoneToday = todayRec?.status === 'completed';
 
-  // Keep bottom tab in sync with scroll position
+  // Keep bottom tab in sync with scroll position and calculate parallax ratio
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const top = e.currentTarget.scrollTop;
-    const threshold = window.innerHeight * 0.45;
+    const vh = window.innerHeight || 800;
+    const ratio = Math.min(1, Math.max(0, top / (vh * 0.7)));
+    setScrollRatio(ratio);
+
+    const threshold = vh * 0.45;
     if (top > threshold) {
       if (tab !== 'history') setTab('history');
     } else {
@@ -403,6 +431,61 @@ export default function App() {
     hapticPulse(8);
     setTab('today');
     canvasRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Kinetic Touch Gestures: Auto-scroll between Screen 1 and Screen 2 on swipe/flick
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current === null) return;
+    const endY = e.changedTouches[0].clientY;
+    const deltaY = endY - touchStartY.current;
+    const deltaTime = Date.now() - touchStartTime.current;
+    touchStartY.current = null;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const currentScroll = canvas.scrollTop;
+    const vh = window.innerHeight || 800;
+    const isFlick = deltaTime < 300 && Math.abs(deltaY) > 28;
+
+    // If on Screen 1 and user swipes or flicks up to reveal Screen 2:
+    if (currentScroll < vh * 0.4) {
+      if (deltaY < -35 || (isFlick && deltaY < -20)) {
+        scrollToScreen2();
+      }
+    } else if (currentScroll <= vh + 20) {
+      // If near the top region of Screen 2 and user swipes down to spring back to Screen 1:
+      if (deltaY > 35 || (isFlick && deltaY > 20)) {
+        scrollToTop();
+      }
+    }
+  };
+
+  // Trackpad / Wheel inertial trigger
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || isAutoScrolling.current) return;
+    const currentScroll = canvas.scrollTop;
+    const vh = window.innerHeight || 800;
+
+    if (currentScroll < 15 && e.deltaY > 30) {
+      isAutoScrolling.current = true;
+      scrollToScreen2();
+      setTimeout(() => {
+        isAutoScrolling.current = false;
+      }, 500);
+    } else if (currentScroll <= vh + 10 && currentScroll > 40 && e.deltaY < -30) {
+      isAutoScrolling.current = true;
+      scrollToTop();
+      setTimeout(() => {
+        isAutoScrolling.current = false;
+      }, 500);
+    }
   };
 
   // Determine current activity and titles
@@ -464,26 +547,49 @@ export default function App() {
   // Full unabridged quote for Screen 2
   const quoteText = quote.text;
 
-  // Handle center orb click
+  // Handle center orb click with spring celebration morph
   const handleOrbClick = () => {
     if (activity !== 'rest' && todayRec) {
-      hapticPulse([15, 60, 20]);
+      setIsMorphing(true);
+      setShockwaveKey((k) => k + 1);
+
       if (isDoneToday) {
+        hapticPulse(12);
         t.undo(todayRec.date);
       } else {
+        hapticPulse([15, 45, 28]);
         t.complete(todayRec.date);
       }
+
+      setTimeout(() => {
+        setIsMorphing(false);
+      }, 600);
     } else {
       hapticPulse(10);
     }
   };
 
   return (
-    <div ref={canvasRef} className="phone-canvas" onScroll={handleScroll}>
+    <div
+      ref={canvasRef}
+      className="phone-canvas"
+      onScroll={handleScroll}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
+    >
       {/* ====================================================================
-          SCREEN 1: CLEAR HIERARCHY (100dvh — The Only Thing Visible on Open)
+          SCREEN 1: CLEAR HIERARCHY (100dvh — Full Screen Bleed with Parallax Depth)
           ==================================================================== */}
-      <section className="screen-1" aria-label="Today's Training Overview">
+      <section
+        className="screen-1"
+        aria-label="Today's Training Overview"
+        style={{
+          transform: `scale(${1 - scrollRatio * 0.04}) translateY(${scrollRatio * 18}px)`,
+          opacity: 1 - scrollRatio * 0.25,
+          transition: 'transform 0.08s ease-out, opacity 0.08s ease-out',
+        }}
+      >
         {/* Layered Celestial Background Artwork (Extends Edge-to-Edge Under Status Bar) */}
         <CelestialBackground />
 
@@ -496,8 +602,8 @@ export default function App() {
             type="button"
             className="btn-calendar-badge"
             aria-label="Adjust cycle position"
+            onPointerDown={() => hapticPulse(10)}
             onClick={() => {
-              hapticPulse(10);
               setShowCalendarSheet(true);
             }}
           >
@@ -516,9 +622,12 @@ export default function App() {
           {/* High-Fidelity Compound Apple Glassmorphism Orb */}
           <div className="center-orb-container">
             <div className="orb-ambient-glow" />
+            {shockwaveKey > 0 && (
+              <div key={shockwaveKey} className="orb-shockwave-ring" aria-hidden="true" />
+            )}
             <button
               type="button"
-              className={`glass-orb ${isDoneToday ? 'is-workout-done' : ''}`}
+              className={`glass-orb ${isDoneToday ? 'is-workout-done' : ''} ${isMorphing ? 'is-morphing' : ''}`}
               aria-label={
                 activity !== 'rest'
                   ? isDoneToday
@@ -526,14 +635,23 @@ export default function App() {
                     : 'Tap to mark workout complete.'
                   : 'Rest day active.'
               }
+              onPointerDown={() => hapticPulse(12)}
               onClick={handleOrbClick}
             >
               {activity === 'rest' ? (
                 <HeroBedIcon s={90} />
-              ) : activity === 'resistance' ? (
-                <HeroDumbbellIcon s={84} />
+              ) : isDoneToday ? (
+                <div className="orb-icon-wrapper is-done-icon">
+                  <HeroCheckIcon s={80} />
+                </div>
               ) : (
-                <HeroRunIcon s={80} />
+                <div className="orb-icon-wrapper">
+                  {activity === 'resistance' ? (
+                    <HeroDumbbellIcon s={84} />
+                  ) : (
+                    <HeroRunIcon s={80} />
+                  )}
+                </div>
               )}
             </button>
           </div>
@@ -585,7 +703,14 @@ export default function App() {
 
         {/* Interactive 6-Node Cycle Rail Track */}
         <div className="cycle-rail-section" aria-label="Cycle stages">
-          <div className="rail-connector-line" />
+          <div className="rail-connector-line">
+            <div
+              className="rail-connector-highlight"
+              style={{
+                width: `${Math.min(100, Math.max(0, ((activeStep - 1) / 5) * 100))}%`,
+              }}
+            />
+          </div>
           <div className="cycle-nodes-row" role="list">
             {SIX_STEPS.map((node) => {
               const isSelected = node.step === activeStep;
@@ -721,9 +846,6 @@ export default function App() {
           <blockquote className="quote-body-text">{quoteText}</blockquote>
           <span className="quote-author">— {quote.author}</span>
         </div>
-
-        {/* Generous bottom scroll clearance to prevent tab bar clipping */}
-        <div className="screen-2-bottom-clearance" aria-hidden="true" />
       </section>
 
       {/* ====================================================================
@@ -764,19 +886,8 @@ export default function App() {
               <button
                 key={node.step}
                 type="button"
-                style={{
-                  width: '100%',
-                  minHeight: '3.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.625rem 1rem',
-                  borderRadius: '1rem',
-                  background: isSelected ? 'rgba(139, 120, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                  border: isSelected ? '1px solid #8B78F6' : '1px solid rgba(255, 255, 255, 0.08)',
-                  textAlign: 'left',
-                  boxSizing: 'border-box',
-                }}
+                className={`sheet-step-btn ${isSelected ? 'is-selected' : ''}`}
+                onPointerDown={() => hapticPulse(8)}
                 onClick={async () => {
                   hapticPulse([12, 30]);
                   const targetStage = node.step === 6 ? 5 : node.step - 1;
